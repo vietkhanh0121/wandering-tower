@@ -1,0 +1,930 @@
+[
+  {
+    "id": "spellbook-01",
+    "name": "Sách Phép 01",
+    "pages": [
+      {
+        "type": "wizard",
+        "value": 1
+      }
+    ]
+  },
+  {
+    "id": "spellbook-02",
+    "name": "Sách Phép 02",
+    "pages": [
+      {
+        "type": "tower",
+        "value": 2
+      }
+    ]
+  },
+  {
+    "id": "spellbook-03",
+    "name": "Sách Phép 03",
+    "pages": [
+      {
+        "type": "tower",
+        "value": 3
+      },
+      {
+        "type": "wizard",
+        "value": 1
+      }
+    ]
+  },
+  {
+    "id": "spellbook-04",
+    "name": "Sách Phép 04",
+    "pages": [
+      {
+        "type": "wizard",
+        "diceRolls": 1
+      }
+    ]
+  },
+  {
+    "id": "spellbook-05",
+    "name": "Sách Phép 05",
+    "pages": [
+      {
+        "type": "wizard",
+        "value": 2
+      }
+    ]
+  },
+  {
+    "id": "spellbook-06",
+    "name": "Sách Phép 06",
+    "pages": [
+      {
+        "type": "tower",
+        "value": 3
+      }
+    ]
+  },
+  {
+    "id": "spellbook-07",
+    "name": "Sách Phép 07",
+    "pages": [
+      {
+        "type": "tower",
+        "value": 1
+      },
+      {
+        "type": "wizard",
+        "value": 3
+      }
+    ]
+  },
+  {
+    "id": "spellbook-08",
+    "name": "Sách Phép 08",
+    "pages": [
+      {
+        "type": "tower",
+        "value": 2
+      },
+      {
+        "type": "wizard",
+        "value": 3
+      }
+    ]
+  },
+  {
+    "id": "spellbook-09",
+    "name": "Sách Phép 09",
+    "pages": [
+      {
+        "type": "wizard",
+        "value": 3
+      }
+    ]
+  },
+  {
+    "id": "spellbook-10",
+    "name": "Sách Phép 10",
+    "pages": [
+      {
+        "type": "tower",
+        "value": 1
+      }
+    ]
+  },
+  {
+    "id": "spellbook-11",
+    "name": "Sách Phép 11",
+    "pages": [
+      {
+        "type": "wizard",
+        "diceRolls": 1
+      }
+    ]
+  },
+  {
+    "id": "spellbook-12",
+    "name": "Sách Phép 12",
+    "pages": [
+      {
+        "type": "tower",
+        "value": 3
+      },
+      {
+        "type": "wizard",
+        "value": 1
+      }
+    ]
+  },
+  {
+    "id": "spellbook-13",
+    "name": "Sách Phép 13",
+    "pages": [
+      {
+        "type": "wizard",
+        "value": 2
+      }
+    ]
+  },
+  {
+    "id": "spellbook-14",
+    "name": "Sách Phép 14",
+    "pages": [
+      {
+        "type": "tower",
+        "value": 2
+      }
+    ]
+  },
+  {
+    "id": "spellbook-15",
+    "name": "Sách Phép 15",
+    "pages": [
+      {
+        "type": "tower",
+        "value": 3
+      },
+      {
+        "type": "wizard",
+        "value": 2
+      }
+    ]
+  },
+  {
+    "id": "spellbook-16",
+    "name": "Sách Phép 16",
+    "pages": [
+      {
+        "type": "tower",
+        "value": 1
+      },
+      {
+        "type": "wizard",
+        "value": 3
+      }
+    ]
+  },
+  {
+    "id": "spellbook-17",
+    "name": "Sách Phép 17",
+    "pages": [
+      {
+        "type": "wizard",
+        "diceRolls": 1
+      }
+    ]
+  },
+  {
+    "id": "spellbook-18",
+    "name": "Sách Phép 18",
+    "pages": [
+      {
+        "type": "tower",
+        "value": 3
+      }
+    ]
+  },
+  {
+    "id": "spellbook-19",
+    "name": "Sách Phép 19",
+    "pages": [
+      {
+        "type": "tower",
+        "value": 1
+      },
+      {
+        "type": "wizard",
+        "value": 1
+      }
+    ]
+  },
+  {
+    "id": "spellbook-20",
+    "name": "Sách Phép 20",
+    "pages": [
+      {
+        "type": "tower",
+        "value": 2
+      },
+      {
+        "type": "wizard",
+        "value": 1
+      }
+    ]
+  },
+  {
+    "id": "spellbook-21",
+    "name": "Sách Phép 21",
+    "pages": [
+      {
+        "type": "wizard",
+        "value": 1
+      }
+    ]
+  },
+  {
+    "id": "spellbook-22",
+    "name": "Sách Phép 22",
+    "pages": [
+      {
+        "type": "tower",
+        "value": 1
+      }
+    ]
+  },
+  {
+    "id": "spellbook-23",
+    "name": "Sách Phép 23",
+    "pages": [
+      {
+        "type": "tower",
+        "value": 2
+      },
+      {
+        "type": "wizard",
+        "value": 2
+      }
+    ]
+  },
+  {
+    "id": "spellbook-24",
+    "name": "Sách Phép 24",
+    "pages": [
+      {
+        "type": "wizard",
+        "diceRolls": 1
+      }
+    ]
+  },
+  {
+    "id": "spellbook-25",
+    "name": "Sách Phép 25",
+    "pages": [
+      {
+        "type": "wizard",
+        "value": 3
+      }
+    ]
+  },
+  {
+    "id": "spellbook-26",
+    "name": "Sách Phép 26",
+    "pages": [
+      {
+        "type": "tower",
+        "value": 2
+      }
+    ]
+  },
+  {
+    "id": "spellbook-27",
+    "name": "Sách Phép 27",
+    "pages": [
+      {
+        "type": "tower",
+        "value": 3
+      },
+      {
+        "type": "wizard",
+        "value": 3
+      }
+    ]
+  },
+  {
+    "id": "spellbook-28",
+    "name": "Sách Phép 28",
+    "pages": [
+      {
+        "type": "tower",
+        "value": 1
+      },
+      {
+        "type": "wizard",
+        "value": 1
+      }
+    ]
+  },
+  {
+    "id": "spellbook-29",
+    "name": "Sách Phép 29",
+    "pages": [
+      {
+        "type": "wizard",
+        "value": 1
+      }
+    ]
+  },
+  {
+    "id": "spellbook-30",
+    "name": "Sách Phép 30",
+    "pages": [
+      {
+        "type": "tower",
+        "value": 3
+      }
+    ]
+  },
+  {
+    "id": "spellbook-31",
+    "name": "Sách Phép 31",
+    "pages": [
+      {
+        "type": "wizard",
+        "diceRolls": 2
+      }
+    ]
+  },
+  {
+    "id": "spellbook-32",
+    "name": "Sách Phép 32",
+    "pages": [
+      {
+        "type": "tower",
+        "value": 2
+      },
+      {
+        "type": "wizard",
+        "value": 2
+      }
+    ]
+  },
+  {
+    "id": "spellbook-33",
+    "name": "Sách Phép 33",
+    "pages": [
+      {
+        "type": "wizard",
+        "value": 2
+      }
+    ]
+  },
+  {
+    "id": "spellbook-34",
+    "name": "Sách Phép 34",
+    "pages": [
+      {
+        "type": "tower",
+        "value": 1
+      }
+    ]
+  },
+  {
+    "id": "spellbook-35",
+    "name": "Sách Phép 35",
+    "pages": [
+      {
+        "type": "tower",
+        "value": 2
+      },
+      {
+        "type": "wizard",
+        "value": 3
+      }
+    ]
+  },
+  {
+    "id": "spellbook-36",
+    "name": "Sách Phép 36",
+    "pages": [
+      {
+        "type": "tower",
+        "value": 3
+      },
+      {
+        "type": "wizard",
+        "value": 3
+      }
+    ]
+  },
+  {
+    "id": "spellbook-37",
+    "name": "Sách Phép 37",
+    "pages": [
+      {
+        "type": "wizard",
+        "diceRolls": 2
+      }
+    ]
+  },
+  {
+    "id": "spellbook-38",
+    "name": "Sách Phép 38",
+    "pages": [
+      {
+        "type": "tower",
+        "value": 2
+      }
+    ]
+  },
+  {
+    "id": "spellbook-39",
+    "name": "Sách Phép 39",
+    "pages": [
+      {
+        "type": "tower",
+        "value": 3
+      },
+      {
+        "type": "wizard",
+        "value": 1
+      }
+    ]
+  },
+  {
+    "id": "spellbook-40",
+    "name": "Sách Phép 40",
+    "pages": [
+      {
+        "type": "tower",
+        "value": 1
+      },
+      {
+        "type": "wizard",
+        "value": 2
+      }
+    ]
+  },
+  {
+    "id": "spellbook-41",
+    "name": "Sách Phép 41",
+    "pages": [
+      {
+        "type": "wizard",
+        "value": 2
+      }
+    ]
+  },
+  {
+    "id": "spellbook-42",
+    "name": "Sách Phép 42",
+    "pages": [
+      {
+        "type": "tower",
+        "value": 3
+      }
+    ]
+  },
+  {
+    "id": "spellbook-43",
+    "name": "Sách Phép 43",
+    "pages": [
+      {
+        "type": "tower",
+        "value": 1
+      },
+      {
+        "type": "wizard",
+        "value": 3
+      }
+    ]
+  },
+  {
+    "id": "spellbook-44",
+    "name": "Sách Phép 44",
+    "pages": [
+      {
+        "type": "tower",
+        "diceRolls": 1
+      }
+    ]
+  },
+  {
+    "id": "spellbook-45",
+    "name": "Sách Phép 45",
+    "pages": [
+      {
+        "type": "wizard",
+        "value": 3
+      }
+    ]
+  },
+  {
+    "id": "spellbook-46",
+    "name": "Sách Phép 46",
+    "pages": [
+      {
+        "type": "tower",
+        "value": 1
+      }
+    ]
+  },
+  {
+    "id": "spellbook-47",
+    "name": "Sách Phép 47",
+    "pages": [
+      {
+        "type": "tower",
+        "value": 2
+      },
+      {
+        "type": "wizard",
+        "value": 1
+      }
+    ]
+  },
+  {
+    "id": "spellbook-48",
+    "name": "Sách Phép 48",
+    "pages": [
+      {
+        "type": "tower",
+        "value": 3
+      },
+      {
+        "type": "wizard",
+        "value": 1
+      }
+    ]
+  },
+  {
+    "id": "spellbook-49",
+    "name": "Sách Phép 49",
+    "pages": [
+      {
+        "type": "wizard",
+        "value": 2
+      }
+    ]
+  },
+  {
+    "id": "spellbook-50",
+    "name": "Sách Phép 50",
+    "pages": [
+      {
+        "type": "tower",
+        "value": 2
+      }
+    ]
+  },
+  {
+    "id": "spellbook-51",
+    "name": "Sách Phép 51",
+    "pages": [
+      {
+        "type": "tower",
+        "diceRolls": 1
+      }
+    ]
+  },
+  {
+    "id": "spellbook-52",
+    "name": "Sách Phép 52",
+    "pages": [
+      {
+        "type": "tower",
+        "value": 1
+      },
+      {
+        "type": "wizard",
+        "value": 3
+      }
+    ]
+  },
+  {
+    "id": "spellbook-53",
+    "name": "Sách Phép 53",
+    "pages": [
+      {
+        "type": "wizard",
+        "value": 3
+      }
+    ]
+  },
+  {
+    "id": "spellbook-54",
+    "name": "Sách Phép 54",
+    "pages": [
+      {
+        "type": "tower",
+        "value": 3
+      }
+    ]
+  },
+  {
+    "id": "spellbook-55",
+    "name": "Sách Phép 55",
+    "pages": [
+      {
+        "type": "tower",
+        "value": 1
+      },
+      {
+        "type": "wizard",
+        "value": 1
+      }
+    ]
+  },
+  {
+    "id": "spellbook-56",
+    "name": "Sách Phép 56",
+    "pages": [
+      {
+        "type": "tower",
+        "value": 2
+      },
+      {
+        "type": "wizard",
+        "value": 1
+      }
+    ]
+  },
+  {
+    "id": "spellbook-57",
+    "name": "Sách Phép 57",
+    "pages": [
+      {
+        "type": "tower",
+        "diceRolls": 1
+      }
+    ]
+  },
+  {
+    "id": "spellbook-58",
+    "name": "Sách Phép 58",
+    "pages": [
+      {
+        "type": "tower",
+        "value": 1
+      }
+    ]
+  },
+  {
+    "id": "spellbook-59",
+    "name": "Sách Phép 59",
+    "pages": [
+      {
+        "type": "tower",
+        "value": 2
+      },
+      {
+        "type": "wizard",
+        "value": 2
+      }
+    ]
+  },
+  {
+    "id": "spellbook-60",
+    "name": "Sách Phép 60",
+    "pages": [
+      {
+        "type": "tower",
+        "value": 3
+      },
+      {
+        "type": "wizard",
+        "value": 2
+      }
+    ]
+  },
+  {
+    "id": "spellbook-61",
+    "name": "Sách Phép 61",
+    "pages": [
+      {
+        "type": "wizard",
+        "value": 3
+      }
+    ]
+  },
+  {
+    "id": "spellbook-62",
+    "name": "Sách Phép 62",
+    "pages": [
+      {
+        "type": "tower",
+        "value": 2
+      }
+    ]
+  },
+  {
+    "id": "spellbook-63",
+    "name": "Sách Phép 63",
+    "pages": [
+      {
+        "type": "tower",
+        "value": 3
+      },
+      {
+        "type": "wizard",
+        "value": 3
+      }
+    ]
+  },
+  {
+    "id": "spellbook-64",
+    "name": "Sách Phép 64",
+    "pages": [
+      {
+        "type": "tower",
+        "diceRolls": 1
+      }
+    ]
+  },
+  {
+    "id": "spellbook-65",
+    "name": "Sách Phép 65",
+    "pages": [
+      {
+        "type": "wizard",
+        "value": 1
+      }
+    ]
+  },
+  {
+    "id": "spellbook-66",
+    "name": "Sách Phép 66",
+    "pages": [
+      {
+        "type": "tower",
+        "value": 3
+      }
+    ]
+  },
+  {
+    "id": "spellbook-67",
+    "name": "Sách Phép 67",
+    "pages": [
+      {
+        "type": "tower",
+        "value": 1
+      },
+      {
+        "type": "wizard",
+        "value": 2
+      }
+    ]
+  },
+  {
+    "id": "spellbook-68",
+    "name": "Sách Phép 68",
+    "pages": [
+      {
+        "type": "tower",
+        "value": 2
+      },
+      {
+        "type": "wizard",
+        "value": 2
+      }
+    ]
+  },
+  {
+    "id": "spellbook-69",
+    "name": "Sách Phép 69",
+    "pages": [
+      {
+        "type": "wizard",
+        "value": 2
+      }
+    ]
+  },
+  {
+    "id": "spellbook-70",
+    "name": "Sách Phép 70",
+    "pages": [
+      {
+        "type": "tower",
+        "value": 1
+      }
+    ]
+  },
+  {
+    "id": "spellbook-71",
+    "name": "Sách Phép 71",
+    "pages": [
+      {
+        "type": "tower",
+        "diceRolls": 2
+      }
+    ]
+  },
+  {
+    "id": "spellbook-72",
+    "name": "Sách Phép 72",
+    "pages": [
+      {
+        "type": "tower",
+        "value": 3
+      },
+      {
+        "type": "wizard",
+        "value": 3
+      }
+    ]
+  },
+  {
+    "id": "spellbook-73",
+    "name": "Sách Phép 73",
+    "pages": [
+      {
+        "type": "wizard",
+        "value": 1
+      }
+    ]
+  },
+  {
+    "id": "spellbook-74",
+    "name": "Sách Phép 74",
+    "pages": [
+      {
+        "type": "tower",
+        "value": 2
+      }
+    ]
+  },
+  {
+    "id": "spellbook-75",
+    "name": "Sách Phép 75",
+    "pages": [
+      {
+        "type": "tower",
+        "value": 3
+      },
+      {
+        "type": "wizard",
+        "value": 1
+      }
+    ]
+  },
+  {
+    "id": "spellbook-76",
+    "name": "Sách Phép 76",
+    "pages": [
+      {
+        "type": "tower",
+        "value": 1
+      },
+      {
+        "type": "wizard",
+        "value": 2
+      }
+    ]
+  },
+  {
+    "id": "spellbook-77",
+    "name": "Sách Phép 77",
+    "pages": [
+      {
+        "type": "tower",
+        "diceRolls": 2
+      }
+    ]
+  },
+  {
+    "id": "spellbook-78",
+    "name": "Sách Phép 78",
+    "pages": [
+      {
+        "type": "tower",
+        "value": 3
+      }
+    ]
+  },
+  {
+    "id": "spellbook-79",
+    "name": "Sách Phép 79",
+    "pages": [
+      {
+        "type": "tower",
+        "value": 1
+      },
+      {
+        "type": "wizard",
+        "value": 3
+      }
+    ]
+  },
+  {
+    "id": "spellbook-80",
+    "name": "Sách Phép 80",
+    "pages": [
+      {
+        "type": "tower",
+        "value": 2
+      },
+      {
+        "type": "wizard",
+        "value": 3
+      }
+    ]
+  }
+]

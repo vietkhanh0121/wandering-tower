@@ -1,0 +1,18 @@
+[
+  { "id": "mist-gate", "name": "Mist Gate", "lanterns": 1, "hasRaven": true, "isStart": true, "biome": "gate" },
+  { "id": "moon-well", "name": "Moon Well", "lanterns": 2, "hasRaven": false, "isStart": false, "biome": "water" },
+  { "id": "ashen-bridge", "name": "Ashen Bridge", "lanterns": 1, "hasRaven": false, "isStart": false, "biome": "stone" },
+  { "id": "elder-pine", "name": "Elder Pine", "lanterns": 3, "hasRaven": true, "isStart": false, "biome": "forest" },
+  { "id": "black-market", "name": "Black Market", "lanterns": 2, "hasRaven": false, "isStart": false, "biome": "town" },
+  { "id": "salt-marsh", "name": "Salt Marsh", "lanterns": 1, "hasRaven": true, "isStart": false, "biome": "marsh" },
+  { "id": "glass-hill", "name": "Glass Hill", "lanterns": 2, "hasRaven": false, "isStart": false, "biome": "crystal" },
+  { "id": "red-chapel", "name": "Red Chapel", "lanterns": 3, "hasRaven": false, "isStart": false, "biome": "chapel" },
+  { "id": "widow-road", "name": "Widow Road", "lanterns": 1, "hasRaven": true, "isStart": false, "biome": "road" },
+  { "id": "ember-yard", "name": "Ember Yard", "lanterns": 2, "hasRaven": false, "isStart": false, "biome": "ember" },
+  { "id": "thorn-vault", "name": "Thorn Vault", "lanterns": 1, "hasRaven": false, "isStart": false, "biome": "thorn" },
+  { "id": "blue-belfry", "name": "Blue Belfry", "lanterns": 3, "hasRaven": true, "isStart": false, "biome": "tower" },
+  { "id": "dry-fountain", "name": "Dry Fountain", "lanterns": 2, "hasRaven": false, "isStart": false, "biome": "plaza" },
+  { "id": "crow-orchard", "name": "Crow Orchard", "lanterns": 1, "hasRaven": true, "isStart": false, "biome": "orchard" },
+  { "id": "pale-dock", "name": "Pale Dock", "lanterns": 2, "hasRaven": false, "isStart": false, "biome": "dock" },
+  { "id": "last-lantern", "name": "Last Lantern", "lanterns": 3, "hasRaven": false, "isStart": false, "biome": "lantern" }
+]

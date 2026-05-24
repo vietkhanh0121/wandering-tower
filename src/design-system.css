@@ -1,0 +1,653 @@
+:root {
+  --ui-ink: #050608;
+  --ui-text: #eef5f1;
+  --ui-muted: #a9d9df;
+  --ui-accent: #c9a43e;
+  --ui-warm: #c9a43e;
+  --ui-forbidden: rgba(59, 49, 80, .74);
+  --ui-forbidden-solid: #3b3150;
+  --ui-forbidden-highlight: #8f6dca;
+  --ui-glass: rgba(11, 58, 82, .56);
+  --ui-glass-soft: rgba(11, 58, 82, .5);
+  --ui-grid:
+    linear-gradient(90deg, rgba(255,255,255,.045) 1px, transparent 1px),
+    linear-gradient(0deg, rgba(255,255,255,.045) 1px, transparent 1px);
+  --ui-shadow:
+    inset -4px -4px 0 rgba(0,0,0,.34),
+    inset 4px 4px 0 rgba(255,255,255,.1),
+    4px 4px 0 var(--ui-ink);
+  --ui-shadow-small:
+    inset -2px -2px 0 rgba(0,0,0,.26),
+    inset 2px 2px 0 rgba(255,255,255,.08),
+    2px 2px 0 var(--ui-ink);
+  --ui-border: 3px solid var(--ui-ink);
+  --ui-radius: 14px;
+}
+
+/* Unified pixel-glass UI system */
+.menuPanel,
+.debugBar,
+.debugMessage,
+.loadingPanel,
+.lobbyPanel,
+.lobbyIntroPanel,
+.lobbySettingsPanel.menuPanel,
+.confirmPanel,
+.spellGuide,
+.handForbiddenNote,
+.forbiddenSpellGuide,
+.playerLine-local,
+.playerLine-opponent,
+.forbidden {
+  border: var(--ui-border) !important;
+  border-radius: var(--ui-radius) !important;
+  background:
+    var(--ui-grid),
+    var(--ui-glass) !important;
+  background-size: 6px 6px !important;
+  color: var(--ui-text) !important;
+  box-shadow: var(--ui-shadow) !important;
+  -webkit-backdrop-filter: blur(5px);
+  backdrop-filter: blur(5px);
+}
+
+.menuOverlay,
+.slotMachineOverlay,
+.potionOverlay,
+.confirmOverlay,
+.lobbyIntroOverlay,
+.lobbySettingsOverlay.menuOverlay {
+  background: rgba(5, 6, 8, .58) !important;
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+}
+
+.onlineLeaveNotice {
+  border: var(--ui-border) !important;
+  border-radius: var(--ui-radius) !important;
+  background: var(--ui-glass) !important;
+  color: var(--ui-text) !important;
+  box-shadow: var(--ui-shadow-small) !important;
+  -webkit-backdrop-filter: blur(5px);
+  backdrop-filter: blur(5px);
+}
+
+.miniButton,
+.dockButton,
+.modeSwitch button,
+.debugBar button,
+.statusMenuBtn,
+.menuPanelBtn,
+.infoPanelBtn,
+.handExchangeBtn,
+.exchangeButton,
+.forbiddenUseButton,
+.boardNewGameBtn,
+.confirmCancelBtn,
+.confirmAcceptBtn,
+.lobbyModeCard,
+.lobbyPanel .miniButton,
+.lobbyStartBtn,
+.lobbyBackBtn,
+.lobbySettingsPanel .menuPanelBtn,
+.onlineLeaveActions button,
+.onlineLobbyLeaveActions button,
+.onlineRoomCopyBtn {
+  border: var(--ui-border) !important;
+  border-radius: 12px !important;
+  background: var(--ui-glass-soft) !important;
+  background-size: 6px 6px !important;
+  color: var(--ui-text) !important;
+  box-shadow: var(--ui-shadow-small) !important;
+  text-shadow: 2px 2px 0 var(--ui-ink);
+  transition:
+    transform 80ms ease,
+    box-shadow 80ms ease,
+    filter 80ms ease;
+}
+
+.miniButton:active:not(:disabled),
+.dockButton:active:not(:disabled),
+.modeSwitch button:active:not(:disabled),
+.debugBar button:active:not(:disabled),
+.statusMenuBtn:active:not(:disabled),
+.menuPanelBtn:active:not(:disabled),
+.infoPanelBtn:active:not(:disabled),
+.handExchangeBtn:active:not(:disabled),
+.exchangeButton:active:not(:disabled),
+.boardNewGameBtn:active:not(:disabled),
+.confirmCancelBtn:active:not(:disabled),
+.confirmAcceptBtn:active:not(:disabled),
+.lobbyModeCard:active,
+.lobbyPanel .miniButton:active:not(:disabled),
+.lobbyStartBtn:active:not(:disabled),
+.lobbyBackBtn:active:not(:disabled),
+.lobbySettingsPanel .menuPanelBtn:active:not(:disabled),
+.onlineLeaveActions button:active:not(:disabled),
+.onlineLobbyLeaveActions button:active:not(:disabled),
+.onlineRoomCopyBtn:active:not(:disabled) {
+  transform: translate(1px, 1px);
+  box-shadow:
+    inset -1px -1px 0 rgba(0,0,0,.24),
+    inset 1px 1px 0 rgba(255,255,255,.08),
+    1px 1px 0 var(--ui-ink) !important;
+}
+
+.lobbyModeCard:active,
+.lobbyStartBtn:active:not(:disabled),
+.lobbyBackBtn:active:not(:disabled),
+.lobbySettingsPanel .menuPanelBtn:active:not(:disabled),
+.confirmCancelBtn:active:not(:disabled),
+.confirmAcceptBtn:active:not(:disabled) {
+  transform: translate(4px, 4px) scale(.975) !important;
+  border: 1px solid var(--ui-warm) !important;
+  background: rgba(201, 164, 62, .5) !important;
+  color: #f4fdff !important;
+  box-shadow:
+    inset -2px -2px 0 rgba(0,0,0,.32),
+    inset 2px 2px 0 rgba(255,255,255,.1),
+    1px 1px 0 var(--ui-ink) !important;
+}
+
+.miniButton.active,
+.dockButton.active,
+.modeSwitch button[aria-checked="true"],
+.debugBar button.active,
+.statusMenuBtn.active,
+.menuPanelBtn.active,
+.infoPanelBtn.active,
+.lobbyModeCard.active,
+.lobbyPanel .miniButton.active,
+.lobbySettingsPanel .menuPanelBtn.active {
+  border: 1px solid rgba(201, 164, 62, .95) !important;
+  background: rgba(201, 164, 62, .5) !important;
+  color: #f8fbff !important;
+  text-shadow: 2px 2px 0 var(--ui-ink) !important;
+}
+
+.lobbyModeCard.active,
+.lobbyPanel .miniButton.active,
+.lobbySettingsPanel .menuPanelBtn.active {
+  border-color: rgba(201, 164, 62, .95) !important;
+  outline: 0 !important;
+  box-shadow: 3px 3px 0 var(--ui-ink) !important;
+}
+
+.boardNewGameBtn,
+.forbiddenUseButton {
+  border-color: var(--ui-warm) !important;
+  background: rgba(241, 215, 122, .5) !important;
+  color: #fff6c9 !important;
+}
+
+.confirmPanel {
+  width: min(82%, 286px) !important;
+  padding: 18px 16px 16px !important;
+  gap: 14px !important;
+  background: var(--ui-glass) !important;
+}
+
+.phoneGame:not(.lobbyPhoneGame) .menuPanel {
+  background: var(--ui-glass) !important;
+}
+
+.confirmPanel h2 {
+  color: #fff1b3 !important;
+  font-size: 14px !important;
+  line-height: 1.35 !important;
+  text-shadow: 2px 2px 0 var(--ui-ink);
+}
+
+.confirmCancelBtn,
+.confirmAcceptBtn {
+  background: var(--ui-glass-soft) !important;
+  color: var(--ui-text) !important;
+}
+
+.miniButton:disabled,
+.dockButton:disabled,
+.modeSwitch button:disabled,
+.debugBar button:disabled,
+.menuPanelBtn:disabled,
+.forbiddenUseButton:disabled,
+.boardNewGameBtn:disabled,
+.confirmCancelBtn:disabled,
+.confirmAcceptBtn:disabled {
+  opacity: .48;
+  filter: grayscale(.25);
+}
+
+.spellGuide,
+.handForbiddenNote,
+.forbiddenSpellGuide {
+  font-size: 12px !important;
+  line-height: 1.35;
+  text-align: center !important;
+  isolation: isolate;
+  background: #0b3a52 !important;
+  background-size: auto !important;
+  border-width: 2px !important;
+  box-shadow: 1px 1px 0 var(--ui-ink) !important;
+}
+
+.spellGuide strong,
+.handForbiddenNote strong,
+.forbiddenSpellGuide strong {
+  color: #fff1b3;
+}
+
+.spellGuide::before,
+.handForbiddenNote::after,
+.forbiddenSpellGuide::before {
+  z-index: -1 !important;
+  border: 2px solid var(--ui-ink) !important;
+  background: #0b3a52 !important;
+}
+
+.spellGuide.pointLeft::before {
+  border-top: 0 !important;
+  border-right: 0 !important;
+}
+
+.spellGuide.pointRight::before {
+  border-bottom: 0 !important;
+  border-left: 0 !important;
+}
+
+.forbiddenSpellGuide::before {
+  left: clamp(10px, calc(var(--spell-guide-arrow-x, 50%) - 6px), calc(100% - 24px)) !important;
+  border-left: 0 !important;
+  border-top: 0 !important;
+}
+
+.handForbiddenNote::after {
+  border-right: 0 !important;
+  border-bottom: 0 !important;
+}
+
+.spellGuide.error,
+.forbiddenSpellGuide.error {
+  border-color: #ffb06b !important;
+  background: #592622 !important;
+  background-size: auto !important;
+  color: #ffe8ce !important;
+}
+
+.spellGuide.error::before,
+.forbiddenSpellGuide.error::before {
+  background: rgba(89, 38, 34, .86) !important;
+}
+
+.forbiddenCard {
+  border: 2px solid var(--ui-ink) !important;
+  border-radius: 8px !important;
+  background: var(--ui-forbidden) !important;
+  background-size: auto !important;
+  box-shadow:
+    inset -2px -2px 0 rgba(0,0,0,.28),
+    inset 2px 2px 0 rgba(255,255,255,.08),
+    2px 2px 0 var(--ui-ink) !important;
+}
+
+.forbiddenCard.canAfford:not(.hidden):not(.forbiddenCardEmpty) {
+  border-color: var(--ui-forbidden-highlight) !important;
+  outline: 0;
+  box-shadow:
+    inset -1px -1px 0 rgba(0,0,0,.24),
+    inset 1px 1px 0 rgba(255,255,255,.08),
+    0 0 0 1px var(--ui-forbidden-highlight),
+    2px 2px 0 var(--ui-ink) !important;
+}
+
+.forbiddenCard.active:not(.hidden):not(.forbiddenCardEmpty) {
+  border-color: var(--ui-warm) !important;
+  outline: 0;
+  box-shadow:
+    inset -1px -1px 0 rgba(0,0,0,.24),
+    inset 1px 1px 0 rgba(255,255,255,.08),
+    0 0 0 1px var(--ui-warm),
+    2px 2px 0 var(--ui-ink) !important;
+}
+
+.forbiddenCardEmpty {
+  border: 2px dashed rgba(169, 217, 223, .52) !important;
+  background: rgba(5, 6, 8, .18) !important;
+  box-shadow: none !important;
+}
+
+.forbiddenEffect,
+.lobbyModeCard small,
+.menuPanel small,
+.debugBar span {
+  color: var(--ui-muted) !important;
+}
+
+.forbidden {
+  background: var(--ui-forbidden) !important;
+  background-size: auto !important;
+}
+
+.playerLine-local,
+.playerLine-opponent {
+  background: rgba(11, 58, 82, .34) !important;
+  background-size: auto !important;
+}
+
+.playerLine-opponent {
+  border-width: 1px !important;
+  box-shadow:
+    inset -2px -2px 0 rgba(0,0,0,.22),
+    inset 2px 2px 0 rgba(255,255,255,.07),
+    2px 2px 0 var(--ui-ink) !important;
+}
+
+.drawerGrid .playerLine-local {
+  border: 1px solid var(--player-color, var(--ui-ink)) !important;
+  box-shadow:
+    inset -1px -1px 0 rgba(0,0,0,.2),
+    inset 1px 1px 0 rgba(255,255,255,.08),
+    2px 2px 0 var(--ui-ink) !important;
+}
+
+.drawerGrid {
+  border: 0;
+}
+
+.debugForbiddenGrid {
+  background:
+    var(--ui-grid),
+    var(--ui-forbidden) !important;
+  background-size: 6px 6px !important;
+}
+
+.bottomDeck {
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.handExchangeBtn,
+.exchangeButton,
+.infoPanelBtn.exchangeBtn {
+  background: var(--ui-forbidden-solid) !important;
+}
+
+.handExchangeBtn,
+.exchangeButton,
+.infoPanelBtn.exchangeBtn {
+  border-color: var(--ui-ink) !important;
+  color: var(--ui-text) !important;
+}
+
+.playerLine.active {
+  border-color: var(--ui-warm) !important;
+  box-shadow:
+    inset -4px -4px 0 rgba(0,0,0,.34),
+    inset 4px 4px 0 rgba(255,255,255,.1),
+    0 0 0 2px var(--ui-warm),
+    4px 4px 0 var(--ui-ink) !important;
+}
+
+.playerLine-opponent.active {
+  border-color: var(--player-color, var(--ui-warm)) !important;
+  border-width: 1px !important;
+  box-shadow:
+    inset -2px -2px 0 rgba(0,0,0,.22),
+    inset 2px 2px 0 rgba(255,255,255,.07),
+    0 0 0 1px var(--player-color, var(--ui-warm)),
+    2px 2px 0 var(--ui-ink) !important;
+}
+
+.playerLine-opponent.active::after {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  z-index: 2;
+  pointer-events: none;
+  border-radius: calc(var(--ui-radius) + 1px);
+  padding: 1px;
+  background:
+    conic-gradient(
+      from var(--opponent-stroke-angle, 0deg),
+      transparent 0deg,
+      transparent 235deg,
+      color-mix(in srgb, var(--player-color, var(--ui-warm)) 35%, transparent) 260deg,
+      var(--player-color, var(--ui-warm)) 305deg,
+      #fff8c7 326deg,
+      var(--player-color, var(--ui-warm)) 344deg,
+      transparent 360deg
+    );
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  animation: opponent-stroke-run 1.35s linear infinite;
+}
+
+.drawerGrid .playerLine-local.active {
+  box-shadow:
+    inset -1px -1px 0 rgba(0,0,0,.2),
+    inset 1px 1px 0 rgba(255,255,255,.08),
+    0 0 0 1px var(--ui-warm),
+    2px 2px 0 var(--ui-ink) !important;
+}
+
+@property --opponent-stroke-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
+@keyframes opponent-stroke-run {
+  to { --opponent-stroke-angle: 360deg; }
+}
+
+.endTurnBtn {
+  border: 1px solid rgba(201, 164, 62, .95) !important;
+  background: rgba(201, 164, 62, .5) !important;
+  color: #f8fbff !important;
+  text-shadow: 2px 2px 0 var(--ui-ink) !important;
+}
+
+.endTurnBtn,
+.turnWaitBtn,
+.potionCloseBtn,
+.potionReplayBtn {
+  box-shadow:
+    inset -1px -1px 0 rgba(0,0,0,.22),
+    inset 1px 1px 0 rgba(255,255,255,.12),
+    2px 2px 0 var(--ui-ink) !important;
+}
+
+.turnFlipButton {
+  padding: 0 12px !important;
+  min-height: 34px;
+}
+
+.turnFlipButton:active:not(:disabled) .turnFlipInner {
+  transform: translate(3px, 3px) scale(.94);
+}
+
+.turnFlipButton.showBack:active:not(:disabled) .turnFlipInner {
+  transform: rotateX(180deg) translate(3px, -3px) scale(.94);
+}
+
+.endTurnBtn {
+  box-shadow:
+    inset -3px -3px 0 rgba(0,0,0,.32),
+    inset 3px 3px 0 rgba(255,255,255,.14),
+    3px 3px 0 var(--ui-ink) !important;
+}
+
+.endTurnBtn:active:not(:disabled) {
+  transform: translate(1px, 1px);
+  box-shadow:
+    inset -2px -2px 0 rgba(0,0,0,.3),
+    inset 2px 2px 0 rgba(255,255,255,.12),
+    2px 2px 0 var(--ui-ink) !important;
+}
+
+.turnFlipButton,
+.turnFlipButton.endTurnBtn,
+.turnFlipButton.turnWaitBtn {
+  display: block !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: var(--ui-text) !important;
+  text-shadow: none !important;
+  transform: none !important;
+}
+
+.turnFlipButton:active:not(:disabled) {
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+.turnFlipFace {
+  padding: 0 12px;
+  border: 1px solid var(--ui-ink);
+  border-radius: 12px;
+  color: #f8fbff;
+  text-shadow: 2px 2px 0 var(--ui-ink);
+}
+
+.turnFlipFace.isLocalTurn {
+  border-color: rgba(201, 164, 62, .95);
+  background: rgba(201, 164, 62, .5);
+  box-shadow:
+    inset -3px -3px 0 rgba(0,0,0,.32),
+    inset 3px 3px 0 rgba(255,255,255,.14),
+    3px 3px 0 var(--ui-ink);
+}
+
+.turnFlipFace.isOpponentTurn {
+  border-color: var(--turn-color, var(--ui-ink));
+  background: rgba(11, 58, 82, .5);
+  box-shadow:
+    inset -2px -2px 0 rgba(0,0,0,.28),
+    inset 2px 2px 0 rgba(255,255,255,.1),
+    2px 2px 0 var(--ui-ink);
+}
+
+.turnFlipButton:active:not(:disabled) .turnFlipFace {
+  box-shadow:
+    inset -1px -1px 0 rgba(0,0,0,.34),
+    inset 1px 1px 0 rgba(255,255,255,.1),
+    0 0 0 var(--ui-ink);
+}
+
+.settingsSwitchRow {
+  box-shadow: none !important;
+  text-shadow: 2px 2px 0 var(--ui-ink);
+}
+
+.settingsSwitchRow:active:not(:disabled) {
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+.settingsSwitchRow:active:not(:disabled) .settingsSwitchKnob {
+  transform: translate(1px, 1px);
+}
+
+.settingsSwitchRow.active:active:not(:disabled) .settingsSwitchKnob {
+  transform: translateX(22px) translate(1px, 1px);
+}
+
+.potionHud i {
+  box-shadow:
+    inset -1px -1px 0 rgba(0,0,0,.2),
+    inset 1px 1px 0 rgba(255,255,255,.1),
+    2px 2px 0 var(--ui-ink) !important;
+}
+
+.potionCloseBtn:active,
+.potionReplayBtn:active {
+  box-shadow:
+    inset -1px -1px 0 rgba(0,0,0,.18),
+    inset 1px 1px 0 rgba(255,255,255,.1),
+    1px 1px 0 var(--ui-ink) !important;
+}
+
+.forbiddenUseButton {
+  border: 1px solid rgba(241, 215, 122, .95) !important;
+  color: #f8fbff !important;
+  text-shadow: 2px 2px 0 var(--ui-ink) !important;
+  box-shadow:
+    inset -1px -1px 0 rgba(0,0,0,.2),
+    inset 1px 1px 0 rgba(255,255,255,.16),
+    2px 2px 0 var(--ui-ink) !important;
+}
+
+.forbiddenUseButton:active {
+  box-shadow:
+    inset -1px -1px 0 rgba(0,0,0,.18),
+    inset 1px 1px 0 rgba(255,255,255,.14),
+    1px 1px 0 var(--ui-ink) !important;
+}
+
+.loadingTrack {
+  border: 2px solid var(--ui-ink);
+  background: rgba(5, 6, 8, .55) !important;
+}
+
+.loadingTrack span,
+.statusPips i.filled,
+.potions i.filled {
+  background: var(--ui-accent) !important;
+}
+
+.phoneGame:not(.lobbyPhoneGame) .miniButton:active:not(:disabled),
+.phoneGame:not(.lobbyPhoneGame) .dockButton:active:not(:disabled),
+.phoneGame:not(.lobbyPhoneGame) .modeSwitch button:active:not(:disabled),
+.phoneGame:not(.lobbyPhoneGame) .debugBar button:active:not(:disabled),
+.phoneGame:not(.lobbyPhoneGame) .statusMenuBtn:active:not(:disabled),
+.phoneGame:not(.lobbyPhoneGame) .menuPanelBtn:active:not(:disabled),
+.phoneGame:not(.lobbyPhoneGame) .infoPanelBtn:active:not(:disabled),
+.phoneGame:not(.lobbyPhoneGame) .handExchangeBtn:active:not(:disabled),
+.phoneGame:not(.lobbyPhoneGame) .exchangeButton:active:not(:disabled),
+.phoneGame:not(.lobbyPhoneGame) .boardNewGameBtn:active:not(:disabled),
+.phoneGame:not(.lobbyPhoneGame) .diceRollBtn:active:not(:disabled),
+.phoneGame:not(.lobbyPhoneGame) .slotMachineCloseBtn:active:not(:disabled),
+.phoneGame:not(.lobbyPhoneGame) .potionCloseBtn:active:not(:disabled),
+.phoneGame:not(.lobbyPhoneGame) .potionReplayBtn:active:not(:disabled),
+.phoneGame:not(.lobbyPhoneGame) .onlineLeaveActions button:active:not(:disabled) {
+  transform: translate(4px, 4px) scale(.975) !important;
+  border: 1px solid var(--ui-warm) !important;
+  background: rgba(201, 164, 62, .5) !important;
+  color: #f4fdff !important;
+  box-shadow:
+    inset -2px -2px 0 rgba(0,0,0,.32),
+    inset 2px 2px 0 rgba(255,255,255,.1),
+    1px 1px 0 var(--ui-ink) !important;
+}
+
+.phoneGame:not(.lobbyPhoneGame) .forbiddenUseButton:active:not(:disabled) {
+  transform: translate(4px, calc(-50% + 4px)) scale(.975) !important;
+  border: 1px solid var(--ui-warm) !important;
+  background: rgba(201, 164, 62, .5) !important;
+  color: #f4fdff !important;
+  box-shadow:
+    inset -2px -2px 0 rgba(0,0,0,.32),
+    inset 2px 2px 0 rgba(255,255,255,.1),
+    1px 1px 0 var(--ui-ink) !important;
+}
+
+.phoneGame:not(.lobbyPhoneGame) .endTurnSimpleBtn:active:not(:disabled),
+.lobbyPhoneGame .onlineRoomCopyBtn:active:not(:disabled) {
+  transform: translate(4px, 4px) scale(.975) !important;
+  border: 1px solid var(--ui-warm) !important;
+  background: rgba(201, 164, 62, .5) !important;
+  color: #f4fdff !important;
+  box-shadow:
+    inset -2px -2px 0 rgba(0,0,0,.32),
+    inset 2px 2px 0 rgba(255,255,255,.1),
+    1px 1px 0 var(--ui-ink) !important;
+}

@@ -1,0 +1,23 @@
+{
+  "name": "wandering-tower",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "start": "node server.mjs",
+    "server": "node server.mjs",
+    "socket": "node server.mjs",
+    "build": "vite build",
+    "generate:spellbooks": "node scripts/generate-spellbooks.mjs"
+  },
+  "dependencies": {
+    "@vitejs/plugin-react": "latest",
+    "express": "^5.2.1",
+    "lucide-react": "latest",
+    "react": "latest",
+    "react-dom": "latest",
+    "socket.io": "^4.8.3",
+    "socket.io-client": "^4.8.3",
+    "typescript": "latest",
+    "vite": "latest"
+  }
+}

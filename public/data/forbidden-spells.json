@@ -1,0 +1,91 @@
+[
+  {
+    "id": "borrowed-shadow",
+    "name": "Bóng Tối Mượn",
+    "potionCost": 1,
+    "targeting": "own-wizard",
+    "shortEffect": "Pháp sư tiến 1 bước",
+    "effect": "Di chuyển 1 pháp sư của mình tiến 1 bước"
+  },
+  {
+    "id": "midnight-step",
+    "name": "Bước Nửa Đêm",
+    "potionCost": 2,
+    "targeting": "auto",
+    "shortEffect": "Tháp Đen -> Ô ✡ gần nhất",
+    "effect": "Tháp Đen bay đến ô ✡ gần nhất"
+  },
+  {
+    "id": "sealed-stair",
+    "name": "Bậc Thang Phong Ấn",
+    "potionCost": 2,
+    "targeting": "any-tower",
+    "shortEffect": "Giải phóng 1 Pháp sư bị giam cầm",
+    "effect": "Giải phóng 1 pháp sư của mình bị giam trong tháp, nếu không có pháp sư của mình, giải phóng pháp sư đối thủ"
+  },
+  {
+    "id": "backward-step",
+    "name": "Bước Lùi",
+    "potionCost": 2,
+    "targeting": "own-wizard",
+    "shortEffect": "Pháp sư lùi 1 bước",
+    "effect": "Di chuyển 1 pháp sư của mình lùi 1 bước"
+  },
+  {
+    "id": "keep-clockwise-step",
+    "name": "Tháp Đen Dịch Bước",
+    "potionCost": 2,
+    "targeting": "auto",
+    "shortEffect": "Tháp Đen tiến 1 bước",
+    "effect": "Tháp Đen tiến 1 bước"
+  },
+  {
+    "id": "top-tower-swap",
+    "name": "Đảo Đỉnh Tháp",
+    "potionCost": 3,
+    "targeting": "tile",
+    "shortEffect": "Hoán đổi 2 đỉnh tháp",
+    "effect": "Hoán đổi 2 đỉnh tháp (cùng mọi pháp sư trên đó)"
+  },
+  {
+    "id": "raven-tower-step",
+    "name": "Cánh ✡ Bay",
+    "potionCost": 1,
+    "targeting": "raven-tower",
+    "shortEffect": "Tháp ✡ tiến 1 bước",
+    "effect": "Di chuyển 1 Tháp có ✡ tiến 1 bước"
+  },
+  {
+    "id": "forbidden-refresh",
+    "name": "Đổi Sách Cấm",
+    "potionCost": 1,
+    "targeting": "auto",
+    "shortEffect": "Rút Bí thuật mới",
+    "effect": "Bỏ Bí thuật này và rút Bí thuật mới thay thế"
+  },
+  {
+    "id": "shadow-swap",
+    "name": "Đổi Bóng",
+    "potionCost": 3,
+    "targeting": "wizard-swap",
+    "shortEffect": "Đổi chỗ 2 pháp sư",
+    "effect": "Hoán đổi vị trí 1 pháp sư của mình với 1 pháp sư đối thủ"
+  },
+  {
+    "id": "mist-veil",
+    "name": "Sương Mù",
+    "potionCost": 2,
+    "targeting": "auto",
+    "shortEffect": "Chặn vào Tháp Đen",
+    "effect": "Đến lượt tiếp theo của bạn, pháp sư không thể nhảy vào Tháp Đen"
+  },
+  {
+    "id": "puppet-strings",
+    "name": "Dây Điều Khiển",
+    "potionCost": 3,
+    "targeting": "opponent-wizard-dice",
+    "diceRolls": 1,
+    "shortEffect": "Điều khiển pháp sư đối thủ",
+    "effect": "Tung xúc xắc, rồi di chuyển 1 pháp sư đối thủ theo số vừa tung"
+  }
+]
