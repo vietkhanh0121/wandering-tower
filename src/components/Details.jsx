@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { publicCssUrl, publicPath } from "../lib/assets";
 import { WizardFace } from "./WizardFace";
 
 export function Details({ game, activePlayer, localPlayer, isLocalTurn, expression = "idle", onEndTurn }) {
@@ -143,7 +144,7 @@ function PlayerLine({ game, player, filledPotionIds = new Set(), active = false,
       className={["playerLine", active ? "active" : "", variant ? `playerLine-${variant}` : ""].filter(Boolean).join(" ")}
       style={{
         "--player-color": player.color,
-        "--potion-full": `url('/assets/sprites/items/potion-${player.wizardColor}.png')`,
+        "--potion-full": publicCssUrl(`assets/sprites/items/potion-${player.wizardColor}.png`),
         background: `${player.color}28`
       }}
     >
@@ -151,7 +152,7 @@ function PlayerLine({ game, player, filledPotionIds = new Set(), active = false,
         <>
           <img
             className="playerWizardIcon"
-            src={`/assets/sprites/characters/wizard-face/idle_${player.wizardColor}.png`}
+            src={publicPath(`assets/sprites/characters/wizard-face/idle_${player.wizardColor}.png`)}
             alt=""
           />
           <span className="playerSafeCount">{safe}/{total}</span>

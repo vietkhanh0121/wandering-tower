@@ -1,14 +1,16 @@
 const CACHE_NAME = "wondering-tower-v1";
+const SCOPE_PATH = new URL(self.registration.scope).pathname.replace(/\/$/, "");
+const scopedPath = (path) => `${SCOPE_PATH}${path}`;
 const APP_SHELL = [
-  "/",
-  "/index.html",
-  "/manifest.webmanifest",
-  "/icons/apple-touch-icon.png",
-  "/icons/icon-192.png",
-  "/icons/icon-512.png",
-  "/data/tiles.json",
-  "/data/forbidden-spells.json",
-  "/data/spellbooks.json"
+  scopedPath("/"),
+  scopedPath("/index.html"),
+  scopedPath("/manifest.webmanifest"),
+  scopedPath("/icons/apple-touch-icon.png"),
+  scopedPath("/icons/icon-192.png"),
+  scopedPath("/icons/icon-512.png"),
+  scopedPath("/data/tiles.json"),
+  scopedPath("/data/forbidden-spells.json"),
+  scopedPath("/data/spellbooks.json")
 ];
 
 self.addEventListener("install", (event) => {

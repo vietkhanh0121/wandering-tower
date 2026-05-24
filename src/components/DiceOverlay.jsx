@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { publicPath } from "../lib/assets";
 
 const FACE_SLOTS = {
   1: [0,0,0, 0,1,0, 0,0,0],
@@ -251,7 +252,7 @@ export function DiceOverlay({ context, onRollStart, onRollComplete, readOnly = f
           )}
           {readOnly ? (
             <div className="diceRemoteIntro" aria-live="polite">
-              <img src={`/assets/sprites/characters/wizard-face/idle_${context?.wizardColor ?? "blue"}.png`} alt="" />
+              <img src={publicPath(`assets/sprites/characters/wizard-face/idle_${context?.wizardColor ?? "blue"}.png`)} alt="" />
               <span>{remoteRollText}</span>
             </div>
           ) : (

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { publicPath } from "../lib/assets";
 
 const CENTER = { x: 160, y: 216 };
 const ESCAPE_RADIUS = 126;
@@ -13,17 +14,17 @@ const MIN_LOOP_AREA = 8200;
 const BUBBLE_EDGE_DRIFT_CHANCE = 0.28;
 const BUBBLE_START_RADIUS_MIN = 8;
 const BUBBLE_START_RADIUS_MAX = 28;
-const CAULDRON_RING_SRC = "/assets/sprites/items/cauldron.png";
-const SPOON_SRC = "/assets/sprites/items/spoon.png";
-const CAULDRON_WATER_SRC = "/assets/sprites/cauldron/1.png";
-const BUBBLE_SPRITE_SRC = "/assets/sprites/items/bubble.png";
+const CAULDRON_RING_SRC = publicPath("assets/sprites/items/cauldron.png");
+const SPOON_SRC = publicPath("assets/sprites/items/spoon.png");
+const CAULDRON_WATER_SRC = publicPath("assets/sprites/cauldron/1.png");
+const BUBBLE_SPRITE_SRC = publicPath("assets/sprites/items/bubble.png");
 const SPOON_SIZE = { width: 28, height: 113 };
 const SPOON_TILT_DEG = 15;
 const VARIABLE_TYPES = [
-  { id: "wizard", label: "Pháp sư", icon: "/assets/sprites/items/wizard-icon.png", actions: ["+", "-"], max: 4 },
-  { id: "tower", label: "Tháp", icon: "/assets/sprites/items/tower-icon.png", actions: ["+", "-"], max: 4 },
-  { id: "forbidden", label: "Bí thuật", icon: "/assets/sprites/items/forbidden-icon.png", actions: ["Dùng", "Đổi"], max: 2 },
-  { id: "spellbook", label: "Sách phép", icon: "/assets/sprites/items/spell-book-icon.png", actions: ["Dùng", "Đổi"], max: 2 }
+  { id: "wizard", label: "Pháp sư", icon: publicPath("assets/sprites/items/wizard-icon.png"), actions: ["+", "-"], max: 4 },
+  { id: "tower", label: "Tháp", icon: publicPath("assets/sprites/items/tower-icon.png"), actions: ["+", "-"], max: 4 },
+  { id: "forbidden", label: "Bí thuật", icon: publicPath("assets/sprites/items/forbidden-icon.png"), actions: ["Dùng", "Đổi"], max: 2 },
+  { id: "spellbook", label: "Sách phép", icon: publicPath("assets/sprites/items/spell-book-icon.png"), actions: ["Dùng", "Đổi"], max: 2 }
 ];
 
 function distance(a, b) {

@@ -1,4 +1,6 @@
-const SPRITE_BASE = "/assets/sprites";
+import { publicPath } from "./assets";
+
+const SPRITE_BASE = "assets/sprites";
 
 const TILE_SPRITES_BY_BIOME = {
   chapel: "stone-road",
@@ -26,7 +28,7 @@ const TILE_SPRITES_BY_ID = {
 };
 
 export function spritePath(name) {
-  return `${SPRITE_BASE}/${name}.png`;
+  return publicPath(`${SPRITE_BASE}/${name}.png`);
 }
 
 export function tileSpritePath(tile) {
