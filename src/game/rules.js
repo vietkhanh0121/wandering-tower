@@ -86,7 +86,10 @@ export function buildNewGame({ tiles, forbiddenSpells, spellbooks, playerCount, 
     players: dealtPlayers,
     wizards: placedWizards,
     deck,
-    ...(() => { const sf = shuffle([...forbiddenSpells]); return { forbidden: sf.slice(0, 3), forbiddenPool: sf.slice(3) }; })(),
+    ...(() => {
+      const sf = shuffle([...forbiddenSpells]);
+      return { forbidden: sf.slice(0, 3), forbiddenPool: sf.slice(3), forbiddenDiscard: [] };
+    })(),
     turnOrder: shuffle(dealtPlayers.map((player) => player.id)),
     currentPlayerIndex: 0,
     actionsRemaining: 2,
@@ -474,7 +477,7 @@ export function useForbidden(game, spellId, { free = false, targetId = null, tar
   });
   const keep = next.towers.find((t) => t.kind === "keep");
   let effectMsg = spell.effect;
-  let refillForbiddenAfterUse = false;
+  let refreshForbiddenAfterUse = false;
 
   switch (spell.id) {
     case "borrowed-shadow": {
@@ -582,7 +585,7 @@ export function useForbidden(game, spellId, { free = false, targetId = null, tar
       break;
     }
     case "forbidden-refresh": {
-      refillForbiddenAfterUse = true;
+      refreshForbiddenAfterUse = true;
       effectMsg = "Rút Bí thuật mới thay thế.";
       break;
     }
@@ -625,12 +628,11 @@ export function useForbidden(game, spellId, { free = false, targetId = null, tar
     default: break;
   }
 
-  next.forbidden = next.forbidden.filter((s) => s.id !== spell.id);
-  if (refillForbiddenAfterUse) {
-    while (next.forbidden.length < 3 && next.forbiddenPool.length > 0) {
-      next.forbidden.push(next.forbiddenPool.shift());
-    }
-  }
+  next.forbiddenDiscard ??= [];
+  const discardedAfterUse = refreshForbiddenAfterUse ? next.forbidden : next.forbidden.filter((s) => s.id === spell.id);
+  next.forbidden = refreshForbiddenAfterUse ? [] : next.forbidden.filter((s) => s.id !== spell.id);
+  next.forbiddenDiscard.push(...discardedAfterUse);
+  drawForbiddenToRow(next);
   next.message = `${nextPlayer.name} dùng "${spell.name}". ${effectMsg}`;
   next.log.unshift(next.message);
   const newlySafe = next.wizards.some((w) => w.safe && !safeBefore.has(w.id));
@@ -649,6 +651,7 @@ export function rerollForbidden(game, allSpells) {
   const rotated = allSpells.map((_, index) => allSpells[(startIndex + index) % allSpells.length]);
   next.forbidden = rotated.slice(0, 3);
   next.forbiddenPool = rotated.slice(3);
+  next.forbiddenDiscard = [];
   next.message = "Debug: rút lại Bí thuật mới.";
   next.log.unshift(next.message);
   return next;
@@ -1094,6 +1097,22 @@ function drawToHand(game, player, targetCount) {
   while (player.hand.length < targetCount && game.deck.length) player.hand.push(game.deck.shift());
 }
 
+function drawForbiddenToRow(game, targetCount = 3) {
+  game.forbidden ??= [];
+  game.forbiddenPool ??= [];
+  game.forbiddenDiscard ??= [];
+  while (game.forbidden.length < targetCount) {
+    if (game.forbiddenPool.length === 0) {
+      if (game.forbiddenDiscard.length === 0) break;
+      game.forbiddenPool.push(...shuffle(game.forbiddenDiscard));
+      game.forbiddenDiscard = [];
+    }
+    const nextSpell = game.forbiddenPool.shift();
+    if (!nextSpell) break;
+    game.forbidden.push(nextSpell);
+  }
+}
+
 function finishAction(game, options = {}) {
   const next = cloneGame(game);
   normalizeExpansionPotions(next);
@@ -1109,9 +1128,7 @@ export function endTurn(game) {
   delete next.actionRejected;
   next.towers.forEach((t) => { delete t.tempRaven; });
   next.players.forEach((p) => { delete p.bonusStep; });
-  while (next.forbidden.length < 3 && next.forbiddenPool.length > 0) {
-    next.forbidden.push(next.forbiddenPool.shift());
-  }
+  drawForbiddenToRow(next);
   const player = currentPlayer(next);
   drawToHand(next, player, 3);
   next.actionsRemaining = 2;
