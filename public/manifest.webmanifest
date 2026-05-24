@@ -1,7 +1,7 @@
 {
-  "name": "Wondering Tower",
-  "short_name": "Wondering Tower",
-  "description": "Wondering Tower với em gối",
+  "name": "Wandering Tower",
+  "short_name": "Wandering Tower",
+  "description": "Wandering Tower với em gối",
   "start_url": ".",
   "scope": ".",
   "display": "standalone",

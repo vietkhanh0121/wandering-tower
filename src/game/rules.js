@@ -93,7 +93,7 @@ export function buildNewGame({ tiles, forbiddenSpells, spellbooks, playerCount, 
     expansionMode,
     selectedSpellId: null,
     selectedAction: null,
-    message: "Chào mừng đến với Wondering Tower với em bé gối!",
+    message: "Chào mừng đến với Wandering Tower với em bé gối!",
     log: ["Ravenskeep xuất hiện ngẫu nhiên trên 1 trong 3 ô Raven. Tháp và Pháp sư setup theo chiều kim đồng hồ từ Ravenskeep."]
   };
 }

@@ -21,7 +21,7 @@ export function Lobby({ onStart, onCreateOnlineRoom, onJoinOnlineRoom, onContinu
       <img className="lobbyCloud lobbyCloudBottom" src={publicPath("assets/backgrounds/cloud2.png")} alt="" aria-hidden="true" />
       <div className="lobbyContent">
         <header className="lobbyHeader">
-          <img className="lobbyLogo" src={publicPath("assets/backgrounds/logo.png")} alt="Wondering Tower" />
+          <img className="lobbyLogo" src={publicPath("assets/backgrounds/logo.png")} alt="Wandering Tower" />
           <span>với em gối</span>
         </header>
 
@@ -137,7 +137,7 @@ export function Lobby({ onStart, onCreateOnlineRoom, onJoinOnlineRoom, onContinu
       {showIntro && (
         <div className="lobbyIntroOverlay" role="dialog" aria-modal="true" aria-labelledby="lobby-intro-title">
           <section className="lobbyIntroPanel">
-            <h2 id="lobby-intro-title">Wondering Tower</h2>
+            <h2 id="lobby-intro-title">Wandering Tower</h2>
             <div className="lobbyGuideSprites" aria-hidden="true">
               <img src={publicPath("assets/sprites/characters/wizard/idle-1.png")} alt="" />
               <img src={publicPath("assets/sprites/towers/tower.png")} alt="" />

@@ -1,4 +1,4 @@
-const CACHE_NAME = "wondering-tower-v1";
+const CACHE_NAME = "wandering-tower-v2";
 const SCOPE_PATH = new URL(self.registration.scope).pathname.replace(/\/$/, "");
 const scopedPath = (path) => `${SCOPE_PATH}${path}`;
 const APP_SHELL = [
