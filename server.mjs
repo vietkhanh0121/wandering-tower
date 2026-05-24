@@ -180,12 +180,12 @@ io.on("connection", (socket) => {
     const room = rooms.get(String(roomCode || "").trim().toUpperCase());
     const isBotUpdateByHost = room?.hostId === socket.id && room.players.some((item) => item.id === playerId && item.bot);
     if (!room || (socket.data.playerId !== playerId && !isBotUpdateByHost)) {
-      reply?.({ ok: false });
+      reply?.({ ok: false, message: "Không thể đồng bộ lượt: người chơi không hợp lệ." });
       return;
     }
     const activeId = room.game?.turnOrder?.[room.game.currentPlayerIndex];
     if (activeId && activeId !== playerId) {
-      reply?.({ ok: false });
+      reply?.({ ok: false, message: "Không thể đồng bộ lượt: lượt trên server đã thay đổi.", activeId });
       return;
     }
     room.game = game;

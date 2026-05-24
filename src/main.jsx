@@ -94,6 +94,7 @@ function App() {
   const captureStateRef = useRef(null);
   const socketRef = useRef(null);
   const onlineRef = useRef({ roomCode: "", playerId: "" });
+  const pendingOnlineUpdateRef = useRef(null);
   const onlineStartedRoomsRef = useRef(new Set());
   const onlineLeaveRequestedRef = useRef(false);
   const [onlineRoomCode, setOnlineRoomCode] = useState("");
@@ -303,6 +304,7 @@ function App() {
     socket.on("connect", () => {
       setOnlineConnected(true);
       setOnlineStatus("Đã kết nối server local.");
+      if (pendingOnlineUpdateRef.current) sendOnlineGameUpdate(pendingOnlineUpdateRef.current);
     });
     socket.on("disconnect", () => {
       setOnlineConnected(false);
@@ -319,6 +321,9 @@ function App() {
       if (room.playerCount) setPlayerCount(room.playerCount);
       if (room.game) {
         const currentGame = latestGameRef.current;
+        if (pendingOnlineUpdateRef.current && isSameSyncedGame(pendingOnlineUpdateRef.current.game, room.game)) {
+          pendingOnlineUpdateRef.current = null;
+        }
         if (currentGame && isSameSyncedGame(currentGame, room.game)) {
           setPlayerColors(room.game.players.map(({ id, name, color, wizardColor }) => ({ id, name, color, wizardColor })));
           setScreen("game");
@@ -361,7 +366,42 @@ function App() {
     setGame(nextGame);
     const { roomCode } = onlineRef.current;
     if (!roomCode || !actorPlayerId) return;
-    socketRef.current?.emit("update-game", { roomCode, playerId: actorPlayerId, game: nextGame });
+    const update = {
+      id: `${actorPlayerId}-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      roomCode,
+      playerId: actorPlayerId,
+      game: nextGame,
+      attempts: 0
+    };
+    pendingOnlineUpdateRef.current = update;
+    sendOnlineGameUpdate(update);
+  }
+
+  function sendOnlineGameUpdate(update) {
+    if (!update || pendingOnlineUpdateRef.current?.id !== update.id) return;
+    const socket = socketRef.current ?? getSocket();
+    if (!socket.connected) {
+      setOnlineStatus("Đang chờ kết nối để đồng bộ lượt...");
+      return;
+    }
+    socket.timeout(3500).emit(
+      "update-game",
+      { roomCode: update.roomCode, playerId: update.playerId, game: update.game },
+      (error, response) => {
+        if (pendingOnlineUpdateRef.current?.id !== update.id) return;
+        if (!error && response?.ok) {
+          pendingOnlineUpdateRef.current = null;
+          return;
+        }
+        const attempts = update.attempts + 1;
+        if (attempts <= 3) {
+          pendingOnlineUpdateRef.current = { ...update, attempts };
+          window.setTimeout(() => sendOnlineGameUpdate(pendingOnlineUpdateRef.current), 450 * attempts);
+          return;
+        }
+        setOnlineStatus(response?.message ?? "Không đồng bộ được lượt. Hãy thử tải lại hoặc vào lại phòng.");
+      }
+    );
   }
 
   function isSameSyncedGame(a, b) {
