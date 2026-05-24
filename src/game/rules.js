@@ -407,7 +407,7 @@ function fillPotion(game, playerId) {
   if (potion) potion.state = "full";
 }
 
-function applyTowerMoveInPlace(game, towerId, steps, { captureWizards = true } = {}) {
+function applyTowerMoveInPlace(game, towerId, steps) {
   const tower = game.towers.find((item) => item.id === towerId);
   if (!tower || tower.kind === "keep") return "Chỉ có thể di chuyển tháp thường.";
   const source = tower.tileIndex;
@@ -444,19 +444,12 @@ function applyTowerMoveInPlace(game, towerId, steps, { captureWizards = true } =
     wizard.standingOn = topTower(game, source)?.id ?? null;
   });
   carriedPrisoners.forEach((wizard) => { wizard.tileIndex = destination; });
-  const landedFreeWizards = game.wizards.filter((wizard) => (
+  const captured = game.wizards.filter((wizard) => (
     wizard.tileIndex === destination && !wizard.safe && !wizard.capturedBy && !carriedFreeIds.has(wizard.id)
   ));
-  if (captureWizards) {
-    landedFreeWizards.forEach((wizard) => { wizard.capturedBy = towerId; });
-  } else {
-    const destinationTopTower = topTower(game, destination);
-    landedFreeWizards.forEach((wizard) => {
-      wizard.standingOn = destinationTopTower?.id ?? null;
-    });
-  }
+  captured.forEach((wizard) => { wizard.capturedBy = towerId; });
   carriedFree.forEach((wizard) => { wizard.tileIndex = destination; });
-  if (captureWizards && landedFreeWizards.length) fillPotion(game, game.turnOrder[game.currentPlayerIndex]);
+  if (captured.length) fillPotion(game, game.turnOrder[game.currentPlayerIndex]);
 
   return null;
 }
@@ -584,7 +577,7 @@ export function useForbidden(game, spellId, { free = false, targetId = null, tar
       break;
     }
     case "raven-tower-step": {
-      const err = applyTowerMoveInPlace(next, targetId, 1, { captureWizards: false });
+      const err = applyTowerMoveInPlace(next, targetId, 1);
       if (err) effectMsg = err;
       break;
     }
