@@ -1157,8 +1157,8 @@ function App() {
     return (
       <main className="loading">
         <section className="loadingPanel">
-          <strong>Đang mở cổng Ravenskeep...</strong>
-          <div className="loadingTrack" aria-label="Đang tải assets" aria-valuemin="0" aria-valuemax="100" aria-valuenow={progressValue} role="progressbar">
+          <strong>Loading</strong>
+          <div className="loadingTrack" aria-label="Loading" aria-valuemin="0" aria-valuemax="100" aria-valuenow={progressValue} role="progressbar">
             <span style={{ "--load-progress": `${progressValue}%` }} />
           </div>
           <small>{progressValue}%</small>
