@@ -27,7 +27,8 @@ import { TILE_STEP_Y, TOWER_LEVEL_HEIGHT } from "./game/tower-layout";
 
 const BOOK_DIR = { blue: "book-open_blue", red: "book-open_red", green: "book-open_green", orange: "book-open_orange1" };
 const FORBIDDEN_HAND_NOTE = "Dùng Bí thuật sẽ tiêu hao bình thuốc, kể cả khi hiệu ứng không thực hiện được.";
-const SOCKET_URL = import.meta.env.VITE_SOCKET_URL ?? (import.meta.env.PROD ? window.location.origin : "http://localhost:3001");
+const CONFIGURED_SOCKET_URL = import.meta.env.VITE_SOCKET_URL?.trim();
+const SOCKET_URL = CONFIGURED_SOCKET_URL || (import.meta.env.PROD ? window.location.origin : "http://localhost:3001");
 import { useForbiddenTargeting } from "./hooks/useForbiddenTargeting";
 import { usePieceHopAnimation } from "./hooks/usePieceHopAnimation";
 import { publicCssUrl, publicPath } from "./lib/assets";
