@@ -2,7 +2,13 @@ import { useEffect, useState } from "react";
 import { Check, Copy, Settings } from "lucide-react";
 import { publicPath } from "../lib/assets";
 
-export function Lobby({ onStart, onCreateOnlineRoom, onJoinOnlineRoom, onContinueWithBots, onLeaveOnlineRoom, onlineStatus = "", onlineRoomCode = "", onlinePlayerId = "", onlinePlayers = [], onlinePlayerCount = 2, isOnlineHost = false, soundEnabled = true, onToggleSound, expansionMode = false, onToggleExpansionMode }) {
+const SOLO_DIFFICULTY_OPTIONS = [
+  { id: "easy", label: "Dễ" },
+  { id: "hard", label: "Khó" },
+  { id: "brutal", label: "Khó vãi lều" }
+];
+
+export function Lobby({ onStart, onCreateOnlineRoom, onJoinOnlineRoom, onContinueWithBots, onLeaveOnlineRoom, onlineStatus = "", onlineRoomCode = "", onlinePlayerId = "", onlinePlayers = [], onlinePlayerCount = 2, isOnlineHost = false, soundEnabled = true, onToggleSound, expansionMode = false, onToggleExpansionMode, botDifficulty = "hard", onBotDifficultyChange }) {
   const [count, setCount] = useState(2);
   const [view, setView] = useState("mode");
   const [showIntro, setShowIntro] = useState(false);
@@ -48,14 +54,14 @@ export function Lobby({ onStart, onCreateOnlineRoom, onJoinOnlineRoom, onContinu
           <div className="lobbyPanel">
             <span className="lobbyModeName">Solo</span>
             <PlayerCountPicker count={count} setCount={setCount} />
-            <small className="lobbyModeHint">{count - 1} bot</small>
+            <DifficultyPicker difficulty={botDifficulty} onChange={onBotDifficultyChange} />
             <button className={expansionMode ? "settingsSwitchRow active" : "settingsSwitchRow"} type="button" role="switch" aria-checked={expansionMode} onClick={() => onToggleExpansionMode?.()}>
               <span>Bản mở rộng</span>
               <span className="settingsSwitch" aria-hidden="true">
                 <span className="settingsSwitchKnob" />
               </span>
             </button>
-            <button className="lobbyStartBtn" onClick={() => onStart(count, { expansionMode })}>
+            <button className="lobbyStartBtn" onClick={() => onStart(count, { expansionMode, botDifficulty })}>
               Bắt đầu
             </button>
             <button className="lobbyBackBtn" onClick={() => setView("mode")}>
@@ -251,7 +257,7 @@ function OnlineLeaveLobbyNotice({ players, isHost, onContinueWithBots, onLeaveOn
 
 function PlayerCountPicker({ count, setCount, disabled = false }) {
   return (
-    <div className="lobbyCountPicker">
+    <div className="lobbyControlRow lobbyCountPicker">
       <span>Số người chơi</span>
       <div className="lobbyCountToggle" role="group" aria-label="Số người chơi">
         {[2, 3].map((n) => (
@@ -262,6 +268,29 @@ function PlayerCountPicker({ count, setCount, disabled = false }) {
             disabled={disabled}
           >
             {n}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function DifficultyPicker({ difficulty, onChange }) {
+  const activeIndex = Math.max(0, SOLO_DIFFICULTY_OPTIONS.findIndex((option) => option.id === difficulty));
+
+  return (
+    <div className="lobbyControlRow lobbyDifficultyPicker">
+      <span>Độ khó</span>
+      <div className="lobbyDifficultySegmented" role="group" aria-label={`Độ khó bot: ${SOLO_DIFFICULTY_OPTIONS[activeIndex]?.label ?? "Khó"}`}>
+        {SOLO_DIFFICULTY_OPTIONS.map((option, index) => (
+          <button
+            key={option.id}
+            type="button"
+            className={index === activeIndex ? "lobbyDifficultySegment miniButton active" : "lobbyDifficultySegment miniButton"}
+            aria-label={option.label}
+            onClick={() => onChange?.(option.id)}
+          >
+            {index + 1}
           </button>
         ))}
       </div>

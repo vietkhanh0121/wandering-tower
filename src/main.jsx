@@ -10,6 +10,7 @@ import { Lobby } from "./components/Lobby";
 import { PotionStirOverlay } from "./components/PotionStirOverlay";
 import {
   PLAYER_PRESETS,
+  SOLO_BOT_DIFFICULTY,
   botPlayStep,
   buildNewGame,
   currentPlayer,
@@ -192,6 +193,7 @@ function App() {
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [debugWizards, setDebugWizards] = useState(false);
   const [soloExpansionMode, setSoloExpansionMode] = useState(false);
+  const [soloBotDifficulty, setSoloBotDifficulty] = useState(SOLO_BOT_DIFFICULTY.HARD);
   useEffect(() => { document.body.classList.toggle("debug", debugWizards); }, [debugWizards]);
   useEffect(() => {
     const sequence = ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"];
@@ -526,7 +528,13 @@ function App() {
     const presets = PLAYER_PRESETS.map((preset, i) => ({ ...shuffledVisuals[i], id: preset.id }));
     setPlayerColors(presets);
     setPlayerCount(count);
-    setGame(buildNewGame({ ...data, playerCount: count, playerPresets: presets, expansionMode: Boolean(options.expansionMode) }));
+    setGame(buildNewGame({
+      ...data,
+      playerCount: count,
+      playerPresets: presets,
+      expansionMode: Boolean(options.expansionMode),
+      botDifficulty: options.botDifficulty ?? soloBotDifficulty
+    }));
     setSelectedSpellId(null);
     setIsWaitingForDeal(false);
     setScreen("game");
@@ -568,7 +576,13 @@ function App() {
       setOnlineStatus("Chỉ host có thể tạo ván mới trong phòng online.");
       return;
     }
-    const nextGame = buildNewGame({ ...data, playerCount, playerPresets: playerColors, expansionMode: Boolean(game?.expansionMode) });
+    const nextGame = buildNewGame({
+      ...data,
+      playerCount,
+      playerPresets: playerColors,
+      expansionMode: Boolean(game?.expansionMode),
+      botDifficulty: game?.botDifficulty ?? soloBotDifficulty
+    });
     setGame(nextGame);
     if (onlineRoomCode && isOnlineHost) {
       socketRef.current?.emit("reset-game", { roomCode: onlineRoomCode, game: nextGame });
@@ -1372,6 +1386,8 @@ function App() {
             onToggleSound={() => setSoundEnabled((value) => !value)}
             expansionMode={soloExpansionMode}
             onToggleExpansionMode={() => setSoloExpansionMode((value) => !value)}
+            botDifficulty={soloBotDifficulty}
+            onBotDifficultyChange={setSoloBotDifficulty}
           />
         </section>
       </main>

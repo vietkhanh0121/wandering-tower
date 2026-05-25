@@ -5,6 +5,12 @@ export const PLAYER_PRESETS = [
   { id: "p4", name: "Orange", color: "#ff9a3c", wizardColor: "orange" }
 ];
 
+export const SOLO_BOT_DIFFICULTY = {
+  EASY: "easy",
+  HARD: "hard",
+  BRUTAL: "brutal"
+};
+
 const MAX_WIZARDS_PER_LOCATION = 4;
 const TERRAIN_GROUPS = [
   { kind: "grass", sprites: ["grass1", "grass2", "grass3"] },
@@ -28,7 +34,7 @@ export function normalizeStep(value) {
   return { value: numericValue, label: String(numericValue), rolls: [] };
 }
 
-export function buildNewGame({ tiles, forbiddenSpells, spellbooks, playerCount, playerPresets, expansionMode = false }) {
+export function buildNewGame({ tiles, forbiddenSpells, spellbooks, playerCount, playerPresets, expansionMode = false, botDifficulty = SOLO_BOT_DIFFICULTY.HARD }) {
   const boardSize = 12;
   const boardTiles = shuffle(tiles).slice(0, boardSize);
   const terrainSequence = buildGroupedTerrainSequence(boardSize);
@@ -94,6 +100,7 @@ export function buildNewGame({ tiles, forbiddenSpells, spellbooks, playerCount, 
     currentPlayerIndex: 0,
     actionsRemaining: 2,
     expansionMode,
+    botDifficulty,
     selectedSpellId: null,
     selectedAction: null,
     message: "Chào mừng đến với Wandering Tower với em bé gối!",
@@ -813,6 +820,27 @@ export function resolveFailedSpellAction(game, spellId, message = "Không thể 
 export function botPlayStep(game) {
   const player = currentPlayer(game);
   if (!player) return game;
+  const options = collectBotOptions(game, player);
+  const best = chooseBotOption(game, player, options);
+  if (best && best.score > -500) {
+    const next = best.kind === "forbidden"
+      ? useForbidden(game, best.spell.id, { targetId: best.target.id, valueOverride: best.action?.valueOverride })
+      : playSpell(game, best.spell.id, best.action);
+    next.lastBotAction = buildBotActionVisual(player.id, best);
+    next.log.unshift(`${player.name} bot chọn ${best.spell.name} cho ${best.target.name} (${best.score} điểm).`);
+    return next;
+  }
+
+  const refreshed = replaceSpellbooks(game);
+  refreshed.lastBotAction = {
+    playerId: player.id,
+    action: { kind: "spell-exchange" }
+  };
+  refreshed.log.unshift(`${player.name} bot không có Sách phép hợp lệ nên refresh bài.`);
+  return refreshed;
+}
+
+function collectBotOptions(game, player) {
   const options = [];
   options.push(...botForbiddenOptions(game, player));
 
@@ -836,23 +864,66 @@ export function botPlayStep(game) {
     }
   }
 
-  const best = options.sort((a, b) => b.score - a.score)[0];
-  if (best && best.score > -500) {
-    const next = best.kind === "forbidden"
-      ? useForbidden(game, best.spell.id, { targetId: best.target.id, valueOverride: best.action?.valueOverride })
-      : playSpell(game, best.spell.id, best.action);
-    next.lastBotAction = buildBotActionVisual(player.id, best);
-    next.log.unshift(`${player.name} bot chọn ${best.spell.name} cho ${best.target.name} (${best.score} điểm).`);
-    return next;
+  return options;
+}
+
+function chooseBotOption(game, player, options) {
+  const viable = options
+    .filter((option) => Number.isFinite(option.score))
+    .sort((a, b) => b.score - a.score);
+  if (!viable.length) return null;
+
+  const difficulty = game.botDifficulty ?? SOLO_BOT_DIFFICULTY.HARD;
+  if (difficulty === SOLO_BOT_DIFFICULTY.EASY) return chooseEasyBotOption(viable);
+  if (difficulty === SOLO_BOT_DIFFICULTY.BRUTAL) return chooseBrutalBotOption(game, player, viable);
+  return viable[0];
+}
+
+function chooseEasyBotOption(options) {
+  const topPool = options.slice(0, Math.min(4, options.length));
+  const weighted = topPool
+    .map((option, index) => ({
+      option,
+      weight: Math.max(1, topPool.length - index)
+    }));
+  const totalWeight = weighted.reduce((sum, item) => sum + item.weight, 0);
+  let roll = Math.random() * totalWeight;
+  for (const item of weighted) {
+    roll -= item.weight;
+    if (roll <= 0) return item.option;
+  }
+  return topPool[0];
+}
+
+function chooseBrutalBotOption(game, player, options) {
+  const candidates = options.slice(0, Math.min(6, options.length));
+  let best = candidates[0] ?? null;
+  let bestScore = -Infinity;
+
+  for (const option of candidates) {
+    const next = option.kind === "forbidden"
+      ? useForbidden(game, option.spell.id, { targetId: option.target.id, valueOverride: option.action?.valueOverride })
+      : playSpell(game, option.spell.id, option.action);
+    const replyPenalty = estimateOpponentReplyPenalty(next, player.id);
+    const brutalScore = option.score - replyPenalty;
+    if (brutalScore > bestScore) {
+      bestScore = brutalScore;
+      best = { ...option, score: brutalScore };
+    }
   }
 
-  const refreshed = replaceSpellbooks(game);
-  refreshed.lastBotAction = {
-    playerId: player.id,
-    action: { kind: "spell-exchange" }
-  };
-  refreshed.log.unshift(`${player.name} bot không có Sách phép hợp lệ nên refresh bài.`);
-  return refreshed;
+  return best;
+}
+
+function estimateOpponentReplyPenalty(game, originalPlayerId) {
+  const nextPlayer = currentPlayer(game);
+  if (!nextPlayer || nextPlayer.id === originalPlayerId) return 0;
+  const replyOptions = collectBotOptions(game, nextPlayer)
+    .filter((option) => Number.isFinite(option.score))
+    .sort((a, b) => b.score - a.score);
+  const bestReply = replyOptions[0];
+  if (!bestReply) return 0;
+  return Math.max(0, bestReply.score * 0.72);
 }
 
 function buildBotActionVisual(playerId, best) {

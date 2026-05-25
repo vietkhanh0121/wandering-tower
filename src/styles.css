@@ -494,22 +494,34 @@ button:disabled {
   text-align: center;
 }
 
-.lobbyCountPicker {
-  width: auto;
-  min-height: 42px;
-  display: flex;
+.lobbyControlRow {
+  width: 100%;
+  max-width: 220px;
+  min-height: 34px;
+  display: grid;
+  grid-template-columns: 1fr auto;
   align-items: center;
-  justify-content: center;
-  gap: 8px;
-}
-
-.lobbyCountPicker > span {
-  color: #a9d9df;
+  gap: 12px;
+  color: #d9fbff;
   font-size: 11px;
   font-weight: 900;
   line-height: 1.1;
+  text-align: left;
+  text-shadow: 2px 2px 0 #050608;
   text-transform: uppercase;
-  text-shadow: 1px 1px 0 #050608;
+}
+
+.lobbyCountPicker {
+  min-height: 42px;
+}
+
+.lobbyCountPicker > span {
+  color: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: inherit;
+  text-transform: inherit;
+  text-shadow: inherit;
 }
 
 .lobbyCountToggle {
@@ -526,6 +538,45 @@ button:disabled {
   padding: 0;
   font-size: 14px;
   line-height: 1;
+}
+
+.lobbyDifficultyPicker {
+  grid-template-columns: 1fr 112px;
+}
+
+.lobbyDifficultyPicker > span {
+  color: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: inherit;
+  text-transform: inherit;
+  text-shadow: inherit;
+  justify-self: start;
+}
+
+.lobbyDifficultySegmented {
+  display: grid;
+  grid-template-columns: repeat(3, 34px);
+  justify-content: end;
+  gap: 4px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.lobbyDifficultySegment {
+  width: 34px;
+  min-width: 0;
+  min-height: 34px;
+  padding: 0;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.lobbyDifficultySegment:focus-visible {
+  outline: 2px solid rgba(142, 233, 255, .85);
+  outline-offset: 2px;
 }
 
 .lobbyPanel {
@@ -551,9 +602,16 @@ button:disabled {
 
 .lobbyModeHint {
   color: #aebcc5;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 900;
+  line-height: 1.1;
+  text-shadow: 1px 1px 0 #050608;
   text-transform: uppercase;
+}
+
+.lobbyPanel .settingsSwitchRow {
+  width: 100%;
+  max-width: 220px;
 }
 
 .lobbyStartBtn {
