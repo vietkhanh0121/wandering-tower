@@ -341,10 +341,19 @@
 
 .playerLine-opponent {
   border-width: 1px !important;
+  border-radius: 0 0 8px 8px !important;
   box-shadow:
     inset -2px -2px 0 rgba(0,0,0,.22),
     inset 2px 2px 0 rgba(255,255,255,.07),
     2px 2px 0 var(--ui-ink) !important;
+}
+
+.opponentPanel-2 .playerLine-opponent:first-child {
+  border-radius: 0 0 8px 0 !important;
+}
+
+.opponentPanel-2 .playerLine-opponent:last-child {
+  border-radius: 0 0 0 8px !important;
 }
 
 .drawerGrid .playerLine-local {
@@ -384,6 +393,18 @@
 .infoPanelBtn.exchangeBtn {
   border-color: var(--ui-ink) !important;
   color: var(--ui-text) !important;
+}
+
+.phoneGame:not(.lobbyPhoneGame) .handExchangeBtn {
+  border-width: 1px !important;
+}
+
+.phoneGame:not(.lobbyPhoneGame) .handExchangeBtn:not(:disabled) {
+  border-color: rgba(201, 164, 62, .95) !important;
+  background: rgba(201, 164, 62, .5) !important;
+  color: #f8fbff !important;
+  text-shadow: 2px 2px 0 var(--ui-ink) !important;
+  box-shadow: var(--ui-shadow-small) !important;
 }
 
 .playerLine.active {
@@ -433,6 +454,14 @@
     linear-gradient(#000 0 0);
   mask-composite: exclude;
   animation: opponent-stroke-run 1.35s linear infinite;
+}
+
+.opponentPanel-2 .playerLine-opponent:first-child.active::after {
+  border-radius: 0 0 9px 0;
+}
+
+.opponentPanel-2 .playerLine-opponent:last-child.active::after {
+  border-radius: 0 0 0 9px;
 }
 
 .drawerGrid .playerLine-local.active {

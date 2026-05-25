@@ -51,7 +51,7 @@ function towerArcOffsetAtLevel(pos, level, total) {
   };
 }
 
-export function Board({ game, selectedType, selectableIds, highlightedTileIds, winnerInfo, localPlayerId = "p1", isForbiddenTargeting, forbiddenTargetType, onPlayTarget, onForbiddenDeselect, onUseForbidden, imprisoningTowerIds, onNewGame, debugWizards, debugShowTowers, debugShowWizards, debugShowWizardNames, debugShowTowerNames, debugShowTileNames, debugShowTowerPaths, debugShowDiceOverlay, diceContext, diceReadOnly, diceForcedRoll, actionVisual, onDiceRollStart, onDiceRollComplete, debugShowSlotMachine, tileStepY, towerStackStep, wizardOffsetY, towerJumpPaths, hiddenShadowTileIndexes, lingeringCapturedWizardIds, lingeringSafeWizards, expandedStackIndex, onSetExpandedStackIndex, statusBarContent, turnStartContent }) {
+export function Board({ game, selectedType, selectableIds, highlightedTileIds, highlightedTowerIds, highlightedTileTone = "default", winnerInfo, localPlayerId = "p1", isForbiddenTargeting, forbiddenTargetType, onPlayTarget, onForbiddenDeselect, onUseForbidden, imprisoningTowerIds, onNewGame, debugWizards, debugShowTowers, debugShowWizards, debugShowWizardNames, debugShowTowerNames, debugShowTileNames, debugShowTowerPaths, debugShowDiceOverlay, diceContext, diceReadOnly, diceForcedRoll, actionVisual, onDiceRollStart, onDiceRollComplete, debugShowSlotMachine, tileStepY, towerStackStep, wizardOffsetY, towerJumpPaths, hiddenShadowTileIndexes, lingeringCapturedWizardIds, lingeringSafeWizards, expandedStackIndex, onSetExpandedStackIndex, statusBarContent, turnStartContent }) {
   const positions = useMemo(() => ringPositions(game.board.length, {
     tileStepY,
     towerLevelHeight: towerStackStep
@@ -116,6 +116,8 @@ export function Board({ game, selectedType, selectableIds, highlightedTileIds, w
             selectedType={selectedType}
             selectableIds={selectableIds}
             highlightedTileIds={highlightedTileIds}
+            highlightedTowerIds={highlightedTowerIds}
+            highlightedTileTone={highlightedTileTone}
             isForbiddenTargeting={isForbiddenTargeting}
             onPlayTarget={onPlayTarget}
             onForbiddenDeselect={onForbiddenDeselect}
@@ -146,6 +148,8 @@ export function Board({ game, selectedType, selectableIds, highlightedTileIds, w
             selectedType={selectedType}
             selectableIds={selectableIds}
             highlightedTileIds={highlightedTileIds}
+            highlightedTowerIds={highlightedTowerIds}
+            highlightedTileTone={highlightedTileTone}
             isForbiddenTargeting={isForbiddenTargeting}
             onPlayTarget={onPlayTarget}
             onForbiddenDeselect={onForbiddenDeselect}
@@ -236,9 +240,16 @@ function RemoteActionVisual({ action, origin }) {
   );
 }
 
-function RemoteSpellExchangeVisual() {
+function RemoteSpellExchangeVisual({ action }) {
   return (
-    <span className="remoteSpellExchangeText">Đổi Sách phép</span>
+    <span className="remoteSpellExchangeText">
+      <img
+        src={publicPath(`assets/sprites/characters/wizard-face/idle_${action.wizardColor ?? "blue"}.png`)}
+        alt=""
+        aria-hidden="true"
+      />
+      <span>đổi sách phép</span>
+    </span>
   );
 }
 
@@ -504,7 +515,7 @@ function TowerJumpPathOverlay({ paths }) {
   );
 }
 
-function Tile({ game, tile, index, pos, layer, selectedType, selectableIds, highlightedTileIds, isForbiddenTargeting, forbiddenTargetType, onPlayTarget, onForbiddenDeselect, debugWizards, debugShowTowers, debugShowWizards, debugShowTowerNames, debugShowWizardNames, debugShowTileNames, towerStackStep, wizardOffsetY, hiddenShadowTileIndexes, lingeringCapturedWizardIds, lingeringSafeWizards, imprisoningTowerIds, expandedStackIndex, onSetExpandedStackIndex }) {
+function Tile({ game, tile, index, pos, layer, selectedType, selectableIds, highlightedTileIds, highlightedTowerIds, highlightedTileTone = "default", isForbiddenTargeting, forbiddenTargetType, onPlayTarget, onForbiddenDeselect, debugWizards, debugShowTowers, debugShowWizards, debugShowTowerNames, debugShowWizardNames, debugShowTileNames, towerStackStep, wizardOffsetY, hiddenShadowTileIndexes, lingeringCapturedWizardIds, lingeringSafeWizards, imprisoningTowerIds, expandedStackIndex, onSetExpandedStackIndex }) {
   const occupants = tileOccupants(game, index);
   const lingeringCapturedOccupants = game.wizards.filter((wizard) => (
     lingeringCapturedWizardIds?.has(wizard.id) &&
@@ -559,6 +570,7 @@ function Tile({ game, tile, index, pos, layer, selectedType, selectableIds, high
             "hexCell",
             selectableTower || selectableTile ? "selectable" : "",
             highlightedTile ? "selectedTile" : "",
+            highlightedTile && highlightedTileTone === "gold" ? "selectedTileGold" : "",
             debugWizards ? "debugGrid" : ""
           ].filter(Boolean).join(" ")}
           onClick={(event) => {
@@ -615,7 +627,7 @@ function Tile({ game, tile, index, pos, layer, selectedType, selectableIds, high
       }}
     >
       {highlightedTile && (
-        <svg className="hexSelectionOverlay" viewBox="0 0 100 72" aria-hidden="true">
+        <svg className={highlightedTileTone === "gold" ? "hexSelectionOverlay hexSelectionOverlayGold" : "hexSelectionOverlay"} viewBox="0 0 100 72" aria-hidden="true">
           <polygon points="50,4 97,36 50,68 3,36" />
         </svg>
       )}
@@ -630,6 +642,7 @@ function Tile({ game, tile, index, pos, layer, selectedType, selectableIds, high
       {debugShowTowers && stack.length > 0 && <span className={`${isExpanded ? "towerStack expanded" : "towerStack"} ${selectedType !== "tower" && !selectableTile ? "inactiveHitbox" : ""}`}>
         {stack.map((tower, level) => {
           const isSelectable = selectableIds.has(tower.id);
+          const isHighlightedTopSwapTower = highlightedTowerIds?.has(tower.id);
           const arcOffset = towerArcOffset(pos, level, stack.length);
           const arcTilt = towerArcTilt(pos, level, stack.length);
           const showTowerRaven = tower.kind !== "keep" && (tower.hasRaven || tower.tempRaven);
@@ -639,7 +652,7 @@ function Tile({ game, tile, index, pos, layer, selectedType, selectableIds, high
               key={tower.id}
               data-flip-id={tower.id}
               data-bounce=""
-              className={`${tower.kind === "keep" ? "keepToken" : showTowerRaven ? "towerToken ravenTower" : "towerToken"} ${isSelectable ? "selectable" : ""} ${level === 0 ? "baseTower" : ""} ${imprisoningTowerIds?.has(tower.id) ? "imprisoning" : ""}`}
+              className={`${tower.kind === "keep" ? "keepToken" : showTowerRaven ? "towerToken ravenTower" : "towerToken"} ${isSelectable ? "selectable" : ""} ${level === 0 ? "baseTower" : ""} ${imprisoningTowerIds?.has(tower.id) ? "imprisoning" : ""} ${isHighlightedTopSwapTower ? "selectedTopSwapTower" : ""}`}
               style={{
                 "--level": level,
                 "--arc-x": `${arcOffset.x}px`,

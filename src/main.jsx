@@ -181,11 +181,20 @@ function App() {
   }
   const onReleaseRef = useRef(null);
   onReleaseRef.current = (wizardIds) => {
-    for (const wizardId of wizardIds) {
-      const wizardEl = document.querySelector(`[data-flip-id="${wizardId}"]`);
-      if (!wizardEl) continue;
-      spawnSparkle(wizardId, wizardEl.getBoundingClientRect(), 0.75);
-    }
+    const rects = wizardIds
+      .map((wizardId) => document.querySelector(`[data-flip-id="${wizardId}"]`)?.getBoundingClientRect())
+      .filter(Boolean);
+    if (!rects.length) return;
+    const left = Math.min(...rects.map((rect) => rect.left));
+    const top = Math.min(...rects.map((rect) => rect.top));
+    const right = Math.max(...rects.map((rect) => rect.right));
+    const bottom = Math.max(...rects.map((rect) => rect.bottom));
+    spawnSparkle(wizardIds.join("-"), {
+      left,
+      top,
+      width: right - left,
+      height: bottom - top
+    }, 0.75);
   };
 
   const [pendingDealIds, setPendingDealIds] = useState(() => new Set());
@@ -876,6 +885,8 @@ function App() {
     effectiveSelectableIds,
     effectiveSelectedType,
     highlightedTileIds,
+    highlightedTowerIds,
+    highlightedTileTone,
     resolveTileToTopTower
   } = useForbiddenTargeting({ game, pendingForbidden, selectableIds, selectedType });
 
@@ -1499,6 +1510,8 @@ function App() {
           selectedType={effectiveSelectedType}
           selectableIds={effectiveSelectableIds}
           highlightedTileIds={highlightedTileIds}
+          highlightedTowerIds={highlightedTowerIds}
+          highlightedTileTone={highlightedTileTone}
           winnerInfo={visibleWinnerInfo}
           localPlayerId={localPlayerId}
           onNewGame={(activeWinner || debugShowWinBanner || debugShowLoseBanner) && (!isOnlineGame || isOnlineHost) ? requestNewGameConfirm : null}

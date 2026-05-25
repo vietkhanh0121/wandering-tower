@@ -81,11 +81,24 @@ export function useForbiddenTargeting({ game, pendingForbidden, selectableIds, s
     if (pendingForbidden?.targetType !== "tile" || pendingForbidden.firstTarget == null) return new Set();
     return new Set([targetToTileId(game, pendingForbidden.firstTarget)]);
   }, [game, pendingForbidden]);
+  const highlightedTowerIds = useMemo(() => {
+    if (pendingForbidden?.spellId !== "top-tower-swap" || pendingForbidden.firstTarget == null) return new Set();
+    const towerId = resolveTileToTopTower(game, pendingForbidden.firstTarget);
+    const top = game?.towers.find((tower) => tower.id === towerId);
+    if (!top) return new Set();
+    if (top.kind !== "keep") return new Set([top.id]);
+
+    const supportTower = towerStack(game, top.tileIndex).at(-2);
+    return new Set([top.id, supportTower?.id].filter(Boolean));
+  }, [game, pendingForbidden]);
+  const highlightedTileTone = pendingForbidden?.spellId === "top-tower-swap" ? "gold" : "default";
 
   return {
     effectiveSelectableIds: pendingForbidden ? (forbiddenSelectableIds ?? new Set()) : selectableIds,
     effectiveSelectedType: pendingForbidden ? (forbiddenSelectedType ?? "tower") : selectedType,
     highlightedTileIds,
+    highlightedTowerIds,
+    highlightedTileTone,
     resolveTileToTopTower: (tileKey) => resolveTileToTopTower(game, tileKey)
   };
 }
@@ -100,4 +113,14 @@ function resolveTileToTopTower(game, tileKey) {
   if (!tileKey?.toString().startsWith("tile-")) return tileKey;
   const tileIndex = parseInt(tileKey.toString().replace("tile-", ""));
   return game.towers.filter((tower) => tower.tileIndex === tileIndex).sort((a, b) => b.level - a.level)[0]?.id ?? null;
+}
+
+function towerStack(game, tileIndex) {
+  return game.towers
+    .filter((tower) => tower.tileIndex === tileIndex)
+    .sort((a, b) => {
+      if (a.level !== b.level) return a.level - b.level;
+      if (a.kind === b.kind) return 0;
+      return a.kind === "keep" ? 1 : -1;
+    });
 }

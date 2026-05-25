@@ -861,6 +861,8 @@ button:disabled {
 }
 
 .phoneGame {
+  --phone-pad-top: max(8px, calc(var(--safe-top) * .35));
+  --phone-pad-bottom: max(8px, calc(var(--safe-bottom) * .35));
   width: min(
     calc(100vw - var(--game-safe-pad-left) - var(--game-safe-pad-right)),
     calc((100dvh - var(--game-safe-pad-top) - var(--game-safe-pad-bottom)) * 9 / 19.5),
@@ -874,9 +876,9 @@ button:disabled {
   grid-template-rows: 42px minmax(190px, 1fr) 235px;
   gap: 6px;
   padding:
-    max(8px, calc(var(--safe-top) * .35))
+    var(--phone-pad-top)
     8px
-    max(8px, calc(var(--safe-bottom) * .35));
+    var(--phone-pad-bottom);
   background-color: #171c22;
   background-image: url("../assets/backgrounds/game-background.jpg");
   background-position: center;
@@ -1267,7 +1269,8 @@ h1 {
 .boardWrap {
   min-height: 0;
   position: relative;
-  overflow: hidden;
+  z-index: 40;
+  overflow: visible;
   margin-left: -8px;
   margin-right: -8px;
 }
@@ -1275,11 +1278,15 @@ h1 {
 .opponentPanel {
   min-height: 0;
   display: grid;
-  align-items: center;
+  align-items: start;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 5px;
-  padding: 4px 8px 0;
-  z-index: 20;
+  margin-top: calc(var(--phone-pad-top, 8px) * -1);
+  margin-left: -8px;
+  margin-right: -8px;
+  padding: 0;
+  z-index: 10;
+  pointer-events: none;
 }
 
 .opponentPanel-1 {
@@ -1293,10 +1300,12 @@ h1 {
 
 .opponentPanel-2 .playerLine-opponent:first-child {
   justify-self: start;
+  border-radius: 0 0 8px 0;
 }
 
 .opponentPanel-2 .playerLine-opponent:last-child {
   justify-self: end;
+  border-radius: 0 0 0 8px;
 }
 
 .gameTopControls {
@@ -1613,7 +1622,7 @@ h1 {
   left: auto;
   top: auto;
   z-index: 270;
-  margin: 0;
+  margin-left: -8px;
   display: flex;
   align-items: center;
   transform: none;
@@ -1653,6 +1662,10 @@ h1 {
   image-rendering: pixelated;
 }
 
+.turnMapPrompt-control .turnFlipFace {
+  border-radius: 0 8px 8px 0 !important;
+}
+
 .turnMapPrompt .turnFlipFace.isLocalTurn {
   border-color: var(--turn-color, #4aa3ff) !important;
   background: color-mix(in srgb, var(--turn-color, #4aa3ff) 62%, rgba(11, 58, 82, .84)) !important;
@@ -1687,8 +1700,10 @@ h1 {
 }
 
 .remoteSpellExchangeText {
-  display: inline-block;
-  padding: 7px 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px 6px 7px;
   border: 1px solid var(--remote-player-color, #f1d77a);
   border-radius: 6px;
   background: rgba(21, 19, 18, .86);
@@ -1704,6 +1719,19 @@ h1 {
     0 0 6px color-mix(in srgb, var(--remote-player-color, #f1d77a) 56%, transparent),
     2px 2px 0 #050608;
   text-shadow: 1px 1px 0 #050608;
+}
+
+.remoteSpellExchangeText img {
+  width: 20px;
+  height: 20px;
+  flex: 0 0 auto;
+  object-fit: contain;
+  image-rendering: pixelated;
+  filter:
+    drop-shadow(1px 0 0 #050608)
+    drop-shadow(-1px 0 0 #050608)
+    drop-shadow(0 1px 0 #050608)
+    drop-shadow(0 -1px 0 #050608);
 }
 
 .remoteSpellPages {
@@ -2637,6 +2665,11 @@ body.debug .diceBoard {
   fill: rgba(67, 189, 217, 0.18);
 }
 
+.hexCell.selectedTileGold .hexSvg polygon {
+  stroke: #f1d77a;
+  fill: rgba(241, 215, 122, 0.22);
+}
+
 .hexSelectionOverlay {
   position: absolute;
   inset: 0;
@@ -2654,6 +2687,12 @@ body.debug .diceBoard {
   stroke-width: 4;
   stroke-linejoin: round;
   filter: drop-shadow(0 0 5px rgba(67, 189, 217, .75));
+}
+
+.hexSelectionOverlayGold polygon {
+  fill: rgba(241, 215, 122, 0.18);
+  stroke: #f1d77a;
+  filter: drop-shadow(0 0 6px rgba(241, 215, 122, .82));
 }
 
 .tileTerrainShadow {
@@ -3084,6 +3123,20 @@ body.debug .diceBoard {
   pointer-events: none;
 }
 
+.selectedTopSwapTower .towerSprite {
+  filter:
+    drop-shadow(1px 0 0 #050608)
+    drop-shadow(-1px 0 0 #050608)
+    drop-shadow(0 1px 0 #050608)
+    drop-shadow(0 -1px 0 #050608)
+    drop-shadow(2px 0 0 #f1d77a)
+    drop-shadow(-2px 0 0 #f1d77a)
+    drop-shadow(0 2px 0 #f1d77a)
+    drop-shadow(0 -2px 0 #f1d77a)
+    drop-shadow(0 0 6px rgba(241, 215, 122, .9))
+    drop-shadow(0 0 12px rgba(241, 215, 122, .52));
+}
+
 .towerRavenSprite {
   position: absolute;
   left: 50%;
@@ -3505,6 +3558,7 @@ body.debug .diceBoard {
   grid-template-rows: 24px 63px minmax(min-content, 1fr);
   gap: 2px;
   position: sticky;
+  z-index: 120;
   bottom: 0;
   background: #171c22;
   border-radius: 8px;
@@ -3522,7 +3576,7 @@ body.debug .diceBoard {
   align-items: center;
   justify-items: start;
   column-gap: 7px;
-  padding: 0 8px;
+  padding: 0 8px 0 0;
   pointer-events: none;
 }
 
@@ -4118,7 +4172,7 @@ body.debug .diceBoard {
   color: #eef5f1;
   font-size: 9px;
   font-weight: 900;
-  line-height: 1;
+  line-height: 1.25;
   box-shadow:
     inset -2px -2px 0 rgba(0,0,0,.32),
     inset 2px 2px 0 rgba(255,255,255,.08),
@@ -4767,7 +4821,7 @@ body.debug .diceBoard {
   column-gap: 5px;
   row-gap: 6px;
   padding: 2px 5px;
-  border-radius: 8px;
+  border-radius: 0 0 8px 8px;
   box-shadow: 2px 2px 0 #050608;
 }
 
@@ -5081,8 +5135,8 @@ body.debug .diceBoard {
 .forbiddenRow {
   display: flex;
   gap: 5px;
-  height: 58px;
-  min-height: 58px;
+  height: 52px;
+  min-height: 52px;
   overflow: hidden;
 }
 
@@ -5162,7 +5216,7 @@ body.debug .diceBoard {
   display: flex;
   align-items: center;
   gap: 4px;
-  padding: 5px 15px;
+  padding: 4px 13px;
   border: 2px solid #050608;
   border-radius: 6px;
   background: #46224b;
@@ -5180,9 +5234,9 @@ body.debug .diceBoard {
 .forbiddenCard:not(.forbiddenCardEmpty)::after {
   content: "";
   position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 12px;
+  top: 2px;
+  bottom: 2px;
+  width: 10px;
   background: url("../assets/sprites/items/scroll.png") center / 100% 100% no-repeat;
   image-rendering: pixelated;
   pointer-events: none;

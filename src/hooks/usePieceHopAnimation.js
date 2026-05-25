@@ -24,6 +24,7 @@ export function usePieceHopAnimation(game, layoutOptions, { onSafe, onRelease } 
   const animationLayerCountsRef = useRef(new Map());
   const lingeringCaptureTimeoutRef = useRef(null);
   const lingeringSafeTimeoutRef = useRef(null);
+  const releaseSparkleTimeoutRef = useRef(null);
 
   function captureState(snapshotGame = game) {
     prevGameRef.current = snapshotGame;
@@ -33,6 +34,7 @@ export function usePieceHopAnimation(game, layoutOptions, { onSafe, onRelease } 
     setLingeringSafeWizards(new Map());
     window.clearTimeout(lingeringCaptureTimeoutRef.current);
     window.clearTimeout(lingeringSafeTimeoutRef.current);
+    window.clearTimeout(releaseSparkleTimeoutRef.current);
     setIsAnimatingPieces(true);
     document.documentElement.classList.add("tower-hop-pending");
     const map = new Map();
@@ -80,6 +82,12 @@ export function usePieceHopAnimation(game, layoutOptions, { onSafe, onRelease } 
     setHiddenShadowTileIndexes(nextHiddenShadowTileIndexes);
     const newlyCapturedWizardIds = getNewlyCapturedWizardPlacements({ game, prevGame });
     const newlyReleasedWizardIds = getNewlyReleasedWizardIds({ game, prevGame });
+    if (newlyReleasedWizardIds.size > 0) {
+      window.clearTimeout(releaseSparkleTimeoutRef.current);
+      releaseSparkleTimeoutRef.current = window.setTimeout(() => {
+        onRelease?.([...newlyReleasedWizardIds]);
+      }, Math.max(0, RELEASE_JUMP_MS - RELEASE_SPARKLE_LEAD_MS));
+    }
     if (newlyCapturedWizardIds.size > 0) {
       setLingeringCapturedWizardIds(newlyCapturedWizardIds);
       const lingerMs = getCapturedWizardLingerMs({ game, prevGame, wizardIds: new Set(newlyCapturedWizardIds.keys()) });
@@ -151,13 +159,11 @@ export function usePieceHopAnimation(game, layoutOptions, { onSafe, onRelease } 
               fill: "both"
             });
             runningAnimations += 1;
-            const sparkleTimeout = window.setTimeout(() => onRelease?.([id]), Math.max(0, RELEASE_JUMP_MS - RELEASE_SPARKLE_LEAD_MS));
 
             let didCleanup = false;
             const cleanup = () => {
               if (didCleanup) return;
               didCleanup = true;
-              window.clearTimeout(sparkleTimeout);
               raisedEls.forEach((item) => {
                 const current = animationLayerCountsRef.current.get(item) ?? { count: 1, zIndex: "" };
                 const nextCount = Math.max(0, current.count - 1);

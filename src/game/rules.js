@@ -436,6 +436,7 @@ function fillPotion(game, playerId) {
   const player = game.players.find((item) => item.id === playerId);
   const potion = player?.potions.find((item) => item.state === "empty" && !item.removed);
   if (potion) potion.state = "full";
+  normalizeExpansionPotions(game);
 }
 
 function applyTowerMoveInPlace(game, towerId, steps) {
@@ -496,13 +497,20 @@ export function useForbidden(game, spellId, { free = false, targetId = null, tar
   const next = cloneGame(game);
   normalizeExpansionPotions(next);
   const nextPlayer = currentPlayer(next);
-  if (!free) nextPlayer.potions.filter((p) => p.state === "full" && !p.removed).slice(0, spell.potionCost).forEach((p) => {
-    if (next.expansionMode) {
-      p.state = "empty";
-      p.removed = false;
-    }
-    else p.removed = true;
-  });
+  if (!free) {
+    const fullPotions = nextPlayer.potions.filter((p) => p.state === "full" && !p.removed);
+    const spentPotions = next.expansionMode
+      ? fullPotions.slice(-spell.potionCost)
+      : fullPotions.slice(0, spell.potionCost);
+    spentPotions.forEach((p) => {
+      if (next.expansionMode) {
+        p.state = "empty";
+        p.removed = false;
+      }
+      else p.removed = true;
+    });
+    normalizeExpansionPotions(next);
+  }
   const keep = next.towers.find((t) => t.kind === "keep");
   let effectMsg = spell.effect;
   let refreshForbiddenAfterUse = false;
@@ -1289,10 +1297,11 @@ function cloneGame(game) {
 function normalizeExpansionPotions(game) {
   if (!game?.expansionMode) return game;
   game.players?.forEach((player) => {
-    player.potions?.forEach((potion) => {
-      if (!potion.removed) return;
+    const potions = player.potions ?? [];
+    const fullCount = potions.filter((potion) => potion.state === "full" && !potion.removed).length;
+    potions.forEach((potion, index) => {
       potion.removed = false;
-      potion.state = "empty";
+      potion.state = index < fullCount ? "full" : "empty";
     });
   });
   return game;
