@@ -4,7 +4,7 @@
     "name": "Bóng Tối Mượn",
     "potionCost": 1,
     "targeting": "own-wizard",
-    "shortEffect": "Pháp sư tiến 1 bước",
+    "shortEffect": "Pháp sư +1 bước",
     "effect": "Di chuyển 1 pháp sư của mình tiến 1 bước"
   },
   {
@@ -12,15 +12,15 @@
     "name": "Bước Nửa Đêm",
     "potionCost": 2,
     "targeting": "auto",
-    "shortEffect": "Tháp Đen -> Ô ✡ gần nhất",
-    "effect": "Tháp Đen bay đến ô ✡ gần nhất"
+    "shortEffect": "Tháp Đen -> ✡ gần nhất",
+    "effect": "Tháp Đen bay đến Ô/Tháp ✡ gần nhất"
   },
   {
     "id": "sealed-stair",
-    "name": "Bậc Thang Phong Ấn",
+    "name": "Giải phóng Pháp sư",
     "potionCost": 2,
     "targeting": "any-tower",
-    "shortEffect": "Giải phóng 1 Pháp sư bị giam cầm",
+    "shortEffect": "Giải phóng 1 Pháp sư",
     "effect": "Giải phóng 1 pháp sư của mình bị giam trong tháp, nếu không có pháp sư của mình, giải phóng pháp sư đối thủ"
   },
   {
@@ -28,7 +28,7 @@
     "name": "Bước Lùi",
     "potionCost": 2,
     "targeting": "own-wizard",
-    "shortEffect": "Pháp sư lùi 1 bước",
+    "shortEffect": "Pháp sư -1 bước",
     "effect": "Di chuyển 1 pháp sư của mình lùi 1 bước"
   },
   {
@@ -36,7 +36,7 @@
     "name": "Tháp Đen Dịch Bước",
     "potionCost": 2,
     "targeting": "auto",
-    "shortEffect": "Tháp Đen tiến 1 bước",
+    "shortEffect": "Tháp Đen +1 bước",
     "effect": "Tháp Đen tiến 1 bước"
   },
   {
@@ -49,23 +49,23 @@
   },
   {
     "id": "raven-tower-step",
-    "name": "Cánh ✡ Bay",
+    "name": "Cánh Sao Bay",
     "potionCost": 1,
     "targeting": "raven-tower",
-    "shortEffect": "Tháp ✡ tiến 1 bước",
-    "effect": "Di chuyển 1 Tháp có ✡ tiến 1 bước"
+    "shortEffect": "Tháp ✡ +1 bước",
+    "effect": "Di chuyển 1 Tháp ✡ tiến 1 bước"
   },
   {
     "id": "forbidden-refresh",
     "name": "Đổi Sách Cấm",
     "potionCost": 1,
     "targeting": "auto",
-    "shortEffect": "Rút Bí thuật mới",
-    "effect": "Bỏ Bí thuật này và rút Bí thuật mới thay thế"
+    "shortEffect": "Đổi Bí thuật mới",
+    "effect": "Bỏ toàn bộ bí thuật và rút Bí thuật mới thay thế"
   },
   {
     "id": "shadow-swap",
-    "name": "Đổi Bóng",
+    "name": "Hoán đổi Pháp sư",
     "potionCost": 3,
     "targeting": "wizard-swap",
     "shortEffect": "Đổi chỗ 2 pháp sư",
@@ -77,11 +77,19 @@
     "potionCost": 2,
     "targeting": "auto",
     "shortEffect": "Chặn vào Tháp Đen",
-    "effect": "Đến lượt tiếp theo của bạn, pháp sư không thể nhảy vào Tháp Đen"
+    "effect": "Hết vòng chơi này, pháp sư không thể nhảy vào Tháp Đen"
+  },
+  {
+    "id": "reverse-movement",
+    "name": "Nghịch Hành",
+    "potionCost": 3,
+    "targeting": "auto",
+    "shortEffect": "Đảo chiều di chuyển",
+    "effect": "Hết vòng chơi này, mọi người chơi di chuyển ngược chiều kim đồng hồ"
   },
   {
     "id": "puppet-strings",
-    "name": "Dây Điều Khiển",
+    "name": "Điều khiển rối",
     "potionCost": 3,
     "targeting": "opponent-wizard-dice",
     "diceRolls": 1,

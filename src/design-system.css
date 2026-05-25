@@ -291,12 +291,12 @@
 
 .forbiddenCard.canAfford:not(.hidden):not(.forbiddenCardEmpty) {
   border-color: var(--ui-forbidden-highlight) !important;
+  border-width: 1px !important;
   outline: 0;
   box-shadow:
     inset -1px -1px 0 rgba(0,0,0,.24),
     inset 1px 1px 0 rgba(255,255,255,.08),
-    0 0 0 1px var(--ui-forbidden-highlight),
-    2px 2px 0 var(--ui-ink) !important;
+    1px 1px 0 var(--ui-ink) !important;
 }
 
 .forbiddenCard.active:not(.hidden):not(.forbiddenCardEmpty) {
@@ -307,6 +307,12 @@
     inset 1px 1px 0 rgba(255,255,255,.08),
     0 0 0 1px var(--ui-warm),
     2px 2px 0 var(--ui-ink) !important;
+}
+
+.forbiddenCard.hidden,
+.forbiddenCard.closing {
+  border-width: 0 !important;
+  box-shadow: none !important;
 }
 
 .forbiddenCardEmpty {

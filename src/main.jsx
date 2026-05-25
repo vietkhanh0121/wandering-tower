@@ -1,8 +1,8 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
-import { House, RotateCw, Settings } from "lucide-react";
+import { House, RotateCw } from "lucide-react";
 import { io } from "socket.io-client";
-import { Board, SlotMachineOverlay } from "./components/Board";
+import { Board, SlotMachineOverlay, TurnMapPrompt } from "./components/Board";
 import { DebugBar } from "./components/DebugBar";
 import { Details, OpponentPanel } from "./components/Details";
 import { ForbiddenRow } from "./components/ForbiddenRow";
@@ -27,6 +27,8 @@ import { TILE_STEP_Y, TOWER_LEVEL_HEIGHT } from "./game/tower-layout";
 
 const BOOK_DIR = { blue: "book-open_blue", red: "book-open_red", green: "book-open_green", orange: "book-open_orange1" };
 const FORBIDDEN_HAND_NOTE = "Dùng Bí thuật sẽ tiêu hao bình thuốc, kể cả khi hiệu ứng không thực hiện được.";
+const REMOTE_ACTION_VISIBLE_MS = 2600;
+const REMOTE_ACTION_APPLY_DELAY_MS = 2000;
 const CONFIGURED_SOCKET_URL = import.meta.env.VITE_SOCKET_URL?.trim();
 const SOCKET_URL = CONFIGURED_SOCKET_URL || (import.meta.env.PROD ? window.location.origin : "http://localhost:3001");
 import { useForbiddenTargeting } from "./hooks/useForbiddenTargeting";
@@ -112,6 +114,9 @@ function App() {
   const [remoteDiceContext, setRemoteDiceContext] = useState(null);
   const [remoteActionVisual, setRemoteActionVisual] = useState(null);
   const remoteActionTimerRef = useRef(null);
+  const delayedRemoteGameTimerRef = useRef(null);
+  const delayedRemoteGameRef = useRef(null);
+  const [isRemoteActionDelayPending, setIsRemoteActionDelayPending] = useState(false);
   const [closingSpell, setClosingSpell] = useState(null);
   const [closingBooks, setClosingBooks] = useState([]);
   const [isWaitingForDeal, setIsWaitingForDeal] = useState(false);
@@ -222,6 +227,8 @@ function App() {
   const previousHandsRef = useRef(new Map());
   const previousSpellRectsRef = useRef(new Map());
   const spellCardRefs = useRef(new Map());
+  const bottomDeckRef = useRef(null);
+  const turnStatusButtonRefs = useRef(new Map());
   const clickedSelectedSpellRef = useRef(null);
   const suppressSpellClickRef = useRef(false);
   const recentlyDrawnIdsRef = useRef(new Set());
@@ -296,7 +303,30 @@ function App() {
     socketRef.current?.disconnect();
     socketRef.current = null;
     window.clearTimeout(remoteActionTimerRef.current);
+    window.clearTimeout(delayedRemoteGameTimerRef.current);
   }, []);
+
+  function applyGameState(nextGame, { animate = false } = {}) {
+    if (animate && latestGameRef.current && latestScreenRef.current === "game") {
+      captureStateRef.current?.(latestGameRef.current);
+    }
+    setGame(nextGame);
+    setPlayerColors(nextGame.players.map(({ id, name, color, wizardColor }) => ({ id, name, color, wizardColor })));
+    setScreen("game");
+  }
+
+  function scheduleRemoteGameState(nextGame) {
+    delayedRemoteGameRef.current = nextGame;
+    setIsRemoteActionDelayPending(true);
+    window.clearTimeout(delayedRemoteGameTimerRef.current);
+    delayedRemoteGameTimerRef.current = window.setTimeout(() => {
+      const queuedGame = delayedRemoteGameRef.current;
+      delayedRemoteGameRef.current = null;
+      setIsRemoteActionDelayPending(false);
+      if (!queuedGame) return;
+      applyGameState(queuedGame, { animate: true });
+    }, REMOTE_ACTION_APPLY_DELAY_MS);
+  }
 
   function getSocket() {
     if (socketRef.current) return socketRef.current;
@@ -330,15 +360,19 @@ function App() {
           return;
         }
         const shouldAnimateRemoteState = room.lastEvent !== "reset-game" && room.lastEvent !== "start-game";
-        if (shouldAnimateRemoteState && currentGame && latestScreenRef.current === "game") {
-          captureStateRef.current?.(currentGame);
-        }
+        const shouldDelayRemoteState = shouldAnimateRemoteState &&
+          currentGame &&
+          latestScreenRef.current === "game" &&
+          room.lastActorId &&
+          room.lastActorId !== onlineRef.current.playerId;
         if (room.lastActorId && room.lastActorId !== onlineRef.current.playerId) {
           setRemoteDiceContext((current) => current?.playerId === room.lastActorId ? null : current);
         }
-        setGame(room.game);
-        setPlayerColors(room.game.players.map(({ id, name, color, wizardColor }) => ({ id, name, color, wizardColor })));
-        setScreen("game");
+        if (shouldDelayRemoteState) {
+          scheduleRemoteGameState(room.game);
+        } else {
+          applyGameState(room.game, { animate: shouldAnimateRemoteState && currentGame && latestScreenRef.current === "game" });
+        }
       } else if (room.code) {
         const readyCount = (room.players ?? []).filter((player) => player.connected || player.bot).length;
         const neededCount = room.playerCount ?? 2;
@@ -362,8 +396,8 @@ function App() {
     return socket;
   }
 
-  function commitGame(nextGame, actorPlayerId = onlineRef.current.playerId) {
-    setGame(nextGame);
+  function commitGame(nextGame, actorPlayerId = onlineRef.current.playerId, options = {}) {
+    if (options.applyLocal !== false) setGame(nextGame);
     const { roomCode } = onlineRef.current;
     if (!roomCode || !actorPlayerId) return;
     const update = {
@@ -438,7 +472,7 @@ function App() {
     });
     remoteActionTimerRef.current = window.setTimeout(() => {
       setRemoteActionVisual(null);
-    }, 2600);
+    }, REMOTE_ACTION_VISIBLE_MS);
   }
 
   function showSoloBotRemoteMessage(botAction) {
@@ -447,13 +481,23 @@ function App() {
     showRemoteActionVisual(botAction.playerId, botAction.action);
   }
 
-  function emitRemoteAction(action) {
-    if (!onlineRoomCode || !onlinePlayerId || !action) return;
+  function emitRemoteActionForPlayer(playerId, action) {
+    if (!onlineRoomCode || !playerId || !action) return;
     socketRef.current?.emit("remote-action", {
       roomCode: onlineRoomCode,
-      playerId: onlinePlayerId,
+      playerId,
       action
     });
+  }
+
+  function emitRemoteAction(action) {
+    emitRemoteActionForPlayer(onlinePlayerId, action);
+  }
+
+  function exchangeSpellbooks() {
+    emitRemoteAction({ kind: "spell-exchange" });
+    commitGame(replaceSpellbooks(game));
+    setSelectedSpellId(null);
   }
 
   useEffect(() => {
@@ -501,6 +545,9 @@ function App() {
     setOnlineStatus("");
     setRemoteDiceContext(null);
     setRemoteActionVisual(null);
+    delayedRemoteGameRef.current = null;
+    window.clearTimeout(delayedRemoteGameTimerRef.current);
+    setIsRemoteActionDelayPending(false);
     setSelectedSpellId(null);
     setDiceSpellRoll(null);
     setDiceSpellLocked(false);
@@ -708,17 +755,101 @@ function App() {
   }, [isAnimatingPieces, game]);
 
   useEffect(() => {
-    if (!game?.mistVeil?.expiring || isAnimatingPieces) return;
+    if ((!game?.mistVeil?.expiring && !game?.reverseMovement?.expiring) || isAnimatingPieces) return;
     setGame((current) => {
-      if (!current?.mistVeil?.expiring) return current;
+      if (!current?.mistVeil?.expiring && !current?.reverseMovement?.expiring) return current;
       const next = { ...current };
-      delete next.mistVeil;
+      if (next.mistVeil?.expiring) delete next.mistVeil;
+      if (next.reverseMovement?.expiring) delete next.reverseMovement;
       return next;
     });
-  }, [game?.mistVeil?.expiring, isAnimatingPieces]);
+  }, [game?.mistVeil?.expiring, game?.reverseMovement?.expiring, isAnimatingPieces]);
 
   const displayedActivePlayer = (displayedPlayerId && game?.players.find((p) => p.id === displayedPlayerId)) ?? activePlayer;
   const displayedIsLocalTurn = displayedActivePlayer?.id === localPlayerId;
+  const reverseMovementActive = Boolean(game?.reverseMovement?.playerId && !game.reverseMovement.expiring);
+  const turnStatusItems = useMemo(() => ([
+    reverseMovementActive
+      ? {
+          id: "reverse-movement",
+          label: "Nghịch hành",
+          description: data?.forbiddenSpells?.find((spell) => spell.id === "reverse-movement")?.effect ?? "Đến lượt tiếp theo của bạn, mọi người chơi di chuyển ngược chiều kim đồng hồ",
+          tone: "reverse"
+        }
+      : null,
+    game?.mistVeil?.playerId && !game.mistVeil.expiring
+      ? {
+          id: "mist-veil",
+          label: "Khóa Tháp Đen",
+          description: data?.forbiddenSpells?.find((spell) => spell.id === "mist-veil")?.effect ?? "Đến lượt tiếp theo của bạn, pháp sư không thể nhảy vào Tháp Đen",
+          tone: "mist"
+        }
+      : null
+  ].filter(Boolean)), [
+    data?.forbiddenSpells,
+    game?.mistVeil?.expiring,
+    game?.mistVeil?.playerId,
+    game?.reverseMovement?.expiring,
+    game?.reverseMovement?.playerId,
+    reverseMovementActive
+  ]);
+  const turnStatusKey = turnStatusItems.map((item) => item.id).join("|");
+  const [animatedTurnStatusItems, setAnimatedTurnStatusItems] = useState([]);
+  const [activeTurnStatusId, setActiveTurnStatusId] = useState(null);
+  const [turnStatusTooltipX, setTurnStatusTooltipX] = useState(120);
+  useEffect(() => {
+    const incomingById = new Map(turnStatusItems.map((item) => [item.id, item]));
+    setAnimatedTurnStatusItems((previous) => {
+      const previousById = new Map(previous.map((item) => [item.id, item]));
+      const next = turnStatusItems.map((item) => ({
+        ...item,
+        exiting: false,
+        entered: Boolean(previousById.get(item.id)?.entered)
+      }));
+      previous.forEach((item) => {
+        if (!incomingById.has(item.id) && !item.exiting) next.push({ ...item, exiting: true });
+      });
+      return next;
+    });
+    const enterTimer = setTimeout(() => {
+      setAnimatedTurnStatusItems((previous) => previous.map((item) => ({ ...item, entered: true })));
+    }, 20);
+    const exitTimer = setTimeout(() => {
+      setAnimatedTurnStatusItems((previous) => previous.filter((item) => !item.exiting));
+    }, 260);
+    return () => {
+      clearTimeout(enterTimer);
+      clearTimeout(exitTimer);
+    };
+  }, [turnStatusKey, turnStatusItems]);
+  const activeTurnStatusItem = turnStatusItems.find((item) => item.id === activeTurnStatusId) ?? null;
+  useLayoutEffect(() => {
+    if (!activeTurnStatusItem) return undefined;
+    function updateTurnStatusTooltipX() {
+      const deck = bottomDeckRef.current;
+      const button = turnStatusButtonRefs.current.get(activeTurnStatusItem.id);
+      if (!deck || !button) return;
+      const deckRect = deck.getBoundingClientRect();
+      const buttonRect = button.getBoundingClientRect();
+      setTurnStatusTooltipX(Math.round(buttonRect.left + buttonRect.width / 2 - deckRect.left));
+    }
+    updateTurnStatusTooltipX();
+    window.addEventListener("resize", updateTurnStatusTooltipX);
+    return () => window.removeEventListener("resize", updateTurnStatusTooltipX);
+  }, [activeTurnStatusItem]);
+  useEffect(() => {
+    if (!activeTurnStatusId) return;
+    if (!turnStatusItems.some((item) => item.id === activeTurnStatusId)) setActiveTurnStatusId(null);
+  }, [activeTurnStatusId, turnStatusItems]);
+  const globalStatusActive = turnStatusItems.length > 0;
+  useEffect(() => {
+    if (!activeTurnStatusId) return undefined;
+    function closeTurnStatusTooltip() {
+      setActiveTurnStatusId(null);
+    }
+    window.addEventListener("click", closeTurnStatusTooltip);
+    return () => window.removeEventListener("click", closeTurnStatusTooltip);
+  }, [activeTurnStatusId]);
 
   const forbiddenPotionSprite = publicPath(`assets/sprites/items/potion-${localPlayer?.wizardColor ?? "blue"}.png`);
   const selectableIds = useMemo(() => {
@@ -868,21 +999,21 @@ function App() {
   useEffect(() => {
     const isOnlineBotTurn = isOnlineGame && isOnlineHost && onlinePlayers.some((player) => player.id === activePlayer?.id && player.bot);
     const isOfflineBotTurn = !isOnlineGame && isBotTurn;
-    if (!game || !activePlayer || (!isOfflineBotTurn && !isOnlineBotTurn) || closingSpell || isWaitingForDeal || isAnimatingPieces || activeWinner) return;
+    if (!game || !activePlayer || (!isOfflineBotTurn && !isOnlineBotTurn) || closingSpell || isWaitingForDeal || isAnimatingPieces || isRemoteActionDelayPending || activeWinner) return;
     const timer = window.setTimeout(() => {
-      captureState();
       setSelectedSpellId(null);
       setExpandedStackIndex(null);
       const nextGame = botPlayStep(game);
-      if (!isOnlineGame && nextGame.lastBotAction) showSoloBotRemoteMessage(nextGame.lastBotAction);
+      if (nextGame.lastBotAction) showSoloBotRemoteMessage(nextGame.lastBotAction);
       if (isOnlineBotTurn) {
-        commitGame(nextGame, activePlayer.id);
+        if (nextGame.lastBotAction) emitRemoteActionForPlayer(activePlayer.id, nextGame.lastBotAction.action);
+        commitGame(nextGame, activePlayer.id, { applyLocal: false });
       } else {
-        setGame(nextGame);
+        scheduleRemoteGameState(nextGame);
       }
     }, 700);
     return () => window.clearTimeout(timer);
-  }, [activePlayer?.id, game, isBotTurn, isOnlineGame, isOnlineHost, onlinePlayers, closingSpell, isWaitingForDeal, isAnimatingPieces, activeWinner]);
+  }, [activePlayer?.id, game, isBotTurn, isOnlineGame, isOnlineHost, onlinePlayers, closingSpell, isWaitingForDeal, isAnimatingPieces, isRemoteActionDelayPending, activeWinner]);
 
   useLayoutEffect(() => {
     if (!visibleHandPlayer) return;
@@ -1296,7 +1427,11 @@ function App() {
         />
       )}
       <section
-        className="phoneGame"
+        className={[
+          "phoneGame",
+          globalStatusActive ? "globalStatusActive" : "",
+          reverseMovementActive ? "reverseMovementBackdrop" : ""
+        ].filter(Boolean).join(" ")}
         onClickCapture={(event) => {
           const target = event.target;
           const clickedSpellCard = target.closest?.(".spellCard");
@@ -1341,11 +1476,6 @@ function App() {
         ))}
         {debugShowSlotMachine && <SlotMachineOverlay onClose={() => setDebugShowSlotMachine(false)} />}
         {debugShowPotionMinigame && <PotionStirOverlay onClose={() => setDebugShowPotionMinigame(false)} debug={debugWizards} />}
-        <div className="gameTopControls">
-          <button className="statusMenuBtn" onClick={() => setShowMenu(true)} aria-label="Settings">
-            <Settings size={16} />
-          </button>
-        </div>
         <OpponentPanel game={game} activePlayerId={displayedActivePlayer?.id} localPlayerId={localPlayerId} />
 
         <Board
@@ -1374,12 +1504,6 @@ function App() {
           diceReadOnly={Boolean(remoteDiceContext)}
           diceForcedRoll={remoteDiceContext?.forcedRoll ?? null}
           actionVisual={remoteActionVisual}
-          turnPrompt={{
-            isLocalTurn: displayedIsLocalTurn,
-            wizardColor: displayedActivePlayer?.wizardColor ?? "blue",
-            color: displayedActivePlayer?.color ?? "#050608",
-            key: `${displayedIsLocalTurn ? "local" : "opponent"}-${displayedActivePlayer?.id ?? "none"}`
-          }}
           onDiceRollStart={handleDiceRollStart}
           onDiceRollComplete={handleDiceRollComplete}
           debugShowSlotMachine={debugShowSlotMachine}
@@ -1403,7 +1527,59 @@ function App() {
           onLeaveOnlineRoom={leaveOnlineRoom}
         />
 
-        <section className={isResultVisible ? "bottomDeck controlsLocked" : "bottomDeck"}>
+        <section
+          ref={bottomDeckRef}
+          className={isResultVisible ? "bottomDeck controlsLocked" : "bottomDeck"}
+          style={{
+            "--turn-color": displayedActivePlayer?.color ?? "#4aa3ff"
+          }}
+        >
+          <div className="turnOrderRow">
+            <TurnMapPrompt
+              className="turnMapPrompt-control"
+              prompt={{
+                isLocalTurn: displayedIsLocalTurn,
+                wizardColor: displayedActivePlayer?.wizardColor ?? "blue",
+                color: displayedActivePlayer?.color ?? "#050608",
+                key: `${displayedIsLocalTurn ? "local" : "opponent"}-${displayedActivePlayer?.id ?? "none"}`
+              }}
+            />
+            <div className="turnStatusSlot" aria-live="polite">
+              {animatedTurnStatusItems.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  ref={(element) => {
+                    if (element) turnStatusButtonRefs.current.set(item.id, element);
+                    else turnStatusButtonRefs.current.delete(item.id);
+                  }}
+                  className={`turnStatusPill turnStatusPill-${item.tone}${item.exiting ? " exiting" : ""}${item.entered ? " entered" : ""}`}
+                  title={item.description}
+                  aria-label={item.description}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    if (item.exiting) return;
+                    setActiveTurnStatusId((current) => current === item.id ? null : item.id);
+                  }}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          {activeTurnStatusItem && (
+            <div
+              className={`turnStatusTooltipLayer turnStatusTooltipLayer-${activeTurnStatusItem.tone}`}
+              onClick={() => setActiveTurnStatusId(null)}
+            >
+              <div
+                className="turnStatusTooltip"
+                style={{ "--turn-status-tooltip-x": `${turnStatusTooltipX}px` }}
+              >
+                {activeTurnStatusItem.description}
+              </div>
+            </div>
+          )}
           <div className="forbiddenArea">
             <ForbiddenRow
               spells={game.forbidden}
@@ -1438,7 +1614,7 @@ function App() {
               <button
                 className="handExchangeBtn"
                 disabled={isBotTurn}
-                onClick={() => { commitGame(replaceSpellbooks(game)); setSelectedSpellId(null); }}
+                onClick={exchangeSpellbooks}
               >
                 Đổi Sách phép
               </button>
@@ -1522,6 +1698,7 @@ function App() {
               isLocalTurn={displayedIsLocalTurn}
               expression={wizardExpression}
               onEndTurn={() => commitGame(endTurn(game))}
+              onOpenSettings={() => setShowMenu(true)}
             />
           </div>
         </section>

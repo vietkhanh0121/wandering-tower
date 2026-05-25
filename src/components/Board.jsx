@@ -51,7 +51,7 @@ function towerArcOffsetAtLevel(pos, level, total) {
   };
 }
 
-export function Board({ game, selectedType, selectableIds, highlightedTileIds, winnerInfo, localPlayerId = "p1", isForbiddenTargeting, forbiddenTargetType, onPlayTarget, onForbiddenDeselect, onUseForbidden, imprisoningTowerIds, onNewGame, debugWizards, debugShowTowers, debugShowWizards, debugShowWizardNames, debugShowTowerNames, debugShowTileNames, debugShowTowerPaths, debugShowDiceOverlay, diceContext, diceReadOnly, diceForcedRoll, actionVisual, turnPrompt, onDiceRollStart, onDiceRollComplete, debugShowSlotMachine, tileStepY, towerStackStep, wizardOffsetY, towerJumpPaths, hiddenShadowTileIndexes, lingeringCapturedWizardIds, lingeringSafeWizards, expandedStackIndex, onSetExpandedStackIndex, statusBarContent, turnStartContent }) {
+export function Board({ game, selectedType, selectableIds, highlightedTileIds, winnerInfo, localPlayerId = "p1", isForbiddenTargeting, forbiddenTargetType, onPlayTarget, onForbiddenDeselect, onUseForbidden, imprisoningTowerIds, onNewGame, debugWizards, debugShowTowers, debugShowWizards, debugShowWizardNames, debugShowTowerNames, debugShowTileNames, debugShowTowerPaths, debugShowDiceOverlay, diceContext, diceReadOnly, diceForcedRoll, actionVisual, onDiceRollStart, onDiceRollComplete, debugShowSlotMachine, tileStepY, towerStackStep, wizardOffsetY, towerJumpPaths, hiddenShadowTileIndexes, lingeringCapturedWizardIds, lingeringSafeWizards, expandedStackIndex, onSetExpandedStackIndex, statusBarContent, turnStartContent }) {
   const positions = useMemo(() => ringPositions(game.board.length, {
     tileStepY,
     towerLevelHeight: towerStackStep
@@ -89,22 +89,21 @@ export function Board({ game, selectedType, selectableIds, highlightedTileIds, w
     setBoardShiftY(Math.max(baseShift, finalShift));
   }, [expandedStack.length, expandedStackIndex, positions]);
 
+  const reverseMovementActive = Boolean(game.reverseMovement?.playerId);
+
   return (
     <section className="boardWrap" ref={boardRef} style={{ "--board-shift-y": `${boardShiftY}px` }} onClick={() => { onSetExpandedStackIndex(null); onForbiddenDeselect?.(); }}>
       {statusBarContent}
       {turnStartContent}
       <div
-        className="isoBoard"
+        className={reverseMovementActive ? "isoBoard reverseMovementActive" : "isoBoard"}
         style={{}}
       >
         {debugWizards && debugShowTowerPaths && towerJumpPaths.length > 0 && <TowerJumpPathOverlay paths={towerJumpPaths} />}
         {debugWizards && expandedStackIndex != null && expandedStack.length > 0 && <TowerArcOverlay pos={positions[expandedStackIndex]} stackLength={expandedStack.length} />}
         {debugShowDiceOverlay && <DiceOverlay context={diceContext} readOnly={diceReadOnly} forcedRoll={diceForcedRoll} onRollStart={onDiceRollStart} onRollComplete={onDiceRollComplete} />}
         {!debugShowDiceOverlay && actionVisual && (
-          <RemoteActionVisual action={actionVisual} />
-        )}
-        {turnPrompt && (
-          <TurnMapPrompt prompt={turnPrompt} />
+          <RemoteActionVisual action={actionVisual} origin={remoteActionOrigin(game, localPlayerId, actionVisual.playerId)} />
         )}
         {game.board.map((tile, index) => (
           <Tile
@@ -197,16 +196,49 @@ function isWinningResult(winnerInfo, localPlayerId = "p1") {
   return winnerInfo?.id === localPlayerId || winnerInfo?.id === "debug-win";
 }
 
-function RemoteActionVisual({ action }) {
+function remoteActionOrigin(game, localPlayerId, playerId) {
+  const opponents = orderedOpponentsForLocal(game, localPlayerId);
+  const slotIndex = Math.max(0, opponents.findIndex((player) => player.id === playerId));
+  if (opponents.length <= 1) {
+    return { "--remote-origin-x": "0px", "--remote-origin-y": "clamp(-248px, -32vh, -156px)" };
+  }
+  return {
+    "--remote-origin-x": slotIndex === 0 ? "-112px" : "112px",
+    "--remote-origin-y": "clamp(-248px, -32vh, -156px)"
+  };
+}
+
+function orderedOpponentsForLocal(game, localPlayerId) {
+  const turnOrder = game?.turnOrder ?? [];
+  const localIndex = turnOrder.indexOf(localPlayerId);
+  const rankAfterLocal = (playerId) => {
+    const index = turnOrder.indexOf(playerId);
+    if (index < 0) return 99;
+    if (localIndex < 0) return index;
+    return (index - localIndex + turnOrder.length) % turnOrder.length;
+  };
+  return (game?.players ?? [])
+    .filter((player) => player.id !== localPlayerId)
+    .sort((a, b) => rankAfterLocal(a.id) - rankAfterLocal(b.id));
+}
+
+function RemoteActionVisual({ action, origin }) {
   return (
     <div
-      className="remoteActionVisual"
+      className={action.kind === "spell-exchange" ? "remoteActionVisual remoteActionVisual-text" : "remoteActionVisual"}
+      style={{ ...origin, "--remote-player-color": action.playerColor ?? "#f1d77a" }}
       aria-live="polite"
     >
-      {action.kind === "forbidden"
-        ? <RemoteForbiddenVisual action={action} />
-        : <RemoteSpellVisual action={action} />}
+      {action.kind === "forbidden" && <RemoteForbiddenVisual action={action} />}
+      {action.kind === "spell" && <RemoteSpellVisual action={action} />}
+      {action.kind === "spell-exchange" && <RemoteSpellExchangeVisual action={action} />}
     </div>
+  );
+}
+
+function RemoteSpellExchangeVisual() {
+  return (
+    <span className="remoteSpellExchangeText">Đổi Sách phép</span>
   );
 }
 
@@ -272,7 +304,7 @@ function renderRemoteForbiddenEffect(text) {
   ));
 }
 
-function TurnMapPrompt({ prompt }) {
+export function TurnMapPrompt({ prompt, className = "", style = null }) {
   const currentFace = {
     key: prompt.key,
     isLocalTurn: prompt.isLocalTurn,
@@ -297,8 +329,8 @@ function TurnMapPrompt({ prompt }) {
 
   return (
     <div
-      className={`turnMapPrompt turnFlipButton ${turnFlipState.side === "front" ? "showFront" : "showBack"}`}
-      style={{ "--turn-color": currentFace.color }}
+      className={["turnMapPrompt", "turnFlipButton", turnFlipState.side === "front" ? "showFront" : "showBack", className].filter(Boolean).join(" ")}
+      style={{ ...style, "--turn-color": currentFace.color }}
       aria-live="polite"
     >
       <span className="turnFlipInner">
@@ -492,7 +524,11 @@ function Tile({ game, tile, index, pos, layer, selectedType, selectableIds, high
   const selectableTile = selectedType === "tile" && selectableIds.has(selectableTileId);
   const highlightedTile = highlightedTileIds?.has(selectableTileId);
   const showDirectionArrow = index % 2 === 1;
-  const nextPos = ringPositions(game.board.length)[(index + 1) % game.board.length];
+  const reverseMovementActive = Boolean(game.reverseMovement?.playerId);
+  const directionTargetIndex = reverseMovementActive
+    ? (index - 1 + game.board.length) % game.board.length
+    : (index + 1) % game.board.length;
+  const nextPos = ringPositions(game.board.length)[directionTargetIndex];
   const directionAngle = nextPos ? Math.atan2(nextPos.y - pos.y, nextPos.x - pos.x) * 180 / Math.PI : 0;
   const selectableTower = selectedType === "tower" ? [...stack].reverse().find((tower) => selectableIds.has(tower.id)) : null;
   const isExpanded = selectedType === "tower" && expandedStackIndex === index && stack.length > 0;
@@ -551,7 +587,7 @@ function Tile({ game, tile, index, pos, layer, selectedType, selectableIds, high
           <img className="tileSprite" src={tileSpritePath(tile)} alt="" aria-hidden="true" />
           {showDirectionArrow && (
             <span
-              className="tileDirectionArrow"
+              className={reverseMovementActive ? "tileDirectionArrow reverse" : "tileDirectionArrow"}
               style={{ "--direction-angle": `${directionAngle}deg` }}
               aria-hidden="true"
             >

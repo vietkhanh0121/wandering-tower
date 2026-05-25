@@ -1,8 +1,9 @@
+import { Settings } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { publicCssUrl, publicPath } from "../lib/assets";
 import { WizardFace } from "./WizardFace";
 
-export function Details({ game, activePlayer, localPlayer, isLocalTurn, expression = "idle", onEndTurn }) {
+export function Details({ game, activePlayer, localPlayer, isLocalTurn, expression = "idle", onEndTurn, onOpenSettings }) {
   const prevPlayersRef = useRef(null);
   const prevLocalSafeCountRef = useRef(null);
   const [filledPotionIds, setFilledPotionIds] = useState(() => new Set());
@@ -74,6 +75,11 @@ export function Details({ game, activePlayer, localPlayer, isLocalTurn, expressi
       </div>
       <div className="drawerGrid" style={{ "--player-color": localPlayer.color }}>
         <PlayerLine game={game} player={localPlayer} filledPotionIds={filledPotionIds} variant="local" />
+        {onOpenSettings && (
+          <button className="infoPanelSettingsBtn" onClick={onOpenSettings} aria-label="Settings">
+            <Settings size={15} />
+          </button>
+        )}
       </div>
     </section>
   );
@@ -124,16 +130,29 @@ function polarToCartesian(cx, cy, radius, angle) {
 }
 
 export function OpponentPanel({ game, activePlayerId, localPlayerId = "p1" }) {
-  const opponents = game.players.filter((player) => player.id !== localPlayerId);
+  const opponents = orderedOpponentsForLocal(game, localPlayerId);
   if (!opponents.length) return null;
   return (
-    <div className="opponentPanel">
-      <span className="opponentPanelLabel">Đối<br />thủ</span>
-      {opponents.map((player) => (
-        <PlayerLine key={player.id} game={game} player={player} variant="opponent" />
+    <div className={`opponentPanel opponentPanel-${Math.min(2, opponents.length)}`}>
+      {opponents.slice(0, 2).map((player) => (
+        <PlayerLine key={player.id} game={game} player={player} active={player.id === activePlayerId} variant="opponent" />
       ))}
     </div>
   );
+}
+
+function orderedOpponentsForLocal(game, localPlayerId) {
+  const turnOrder = game.turnOrder ?? [];
+  const localIndex = turnOrder.indexOf(localPlayerId);
+  const rankAfterLocal = (playerId) => {
+    const index = turnOrder.indexOf(playerId);
+    if (index < 0) return 99;
+    if (localIndex < 0) return index;
+    return (index - localIndex + turnOrder.length) % turnOrder.length;
+  };
+  return game.players
+    .filter((player) => player.id !== localPlayerId)
+    .sort((a, b) => rankAfterLocal(a.id) - rankAfterLocal(b.id));
 }
 
 function PlayerLine({ game, player, filledPotionIds = new Set(), active = false, variant = "" }) {
@@ -156,6 +175,7 @@ function PlayerLine({ game, player, filledPotionIds = new Set(), active = false,
             alt=""
           />
           <span className="playerSafeCount">{safe}/{total}</span>
+          {active && <span className="opponentTurnTooltip">Đang đi</span>}
         </>
       )}
       <span className="potions">

@@ -117,6 +117,10 @@ function recordLastMoves(game, moves) {
   game.lastMoves = moves.filter(Boolean);
 }
 
+function appendLastMoves(game, moves) {
+  game.lastMoves = [...(Array.isArray(game.lastMoves) ? game.lastMoves : []), ...moves.filter(Boolean)];
+}
+
 function moveRecord(type, id, fromTileIndex, toTileIndex, steps) {
   return {
     type,
@@ -177,6 +181,14 @@ function activeMistVeil(game) {
   return game.mistVeil?.playerId && !game.mistVeil.expiring ? game.mistVeil : null;
 }
 
+function activeReverseMovement(game) {
+  return game.reverseMovement?.playerId && !game.reverseMovement.expiring ? game.reverseMovement : null;
+}
+
+function movementSteps(game, steps) {
+  return activeReverseMovement(game) ? -steps : steps;
+}
+
 function mistBlocksKeepEntry(game, destination) {
   const keep = game.towers.find((tower) => tower.kind === "keep");
   return Boolean(activeMistVeil(game) && keep && destination === keep.tileIndex);
@@ -200,7 +212,7 @@ export function moveWizard(game, wizardId, rawValue) {
   const activePlayerId = game.turnOrder[game.currentPlayerIndex];
   const bonus = game.players.find((p) => p.id === activePlayerId)?.bonusStep ?? 0;
   const step = normalizeStep(rawValue);
-  const signedSteps = step.value + bonus;
+  const signedSteps = movementSteps(game, step.value + bonus);
   const destination = wrapBoardIndex(wizard.tileIndex + signedSteps, game.board.length);
   if (tileOccupants(game, destination).length >= MAX_WIZARDS_PER_LOCATION) return withMessage(game, "Không thể thực hiện nước đi");
   const keep = game.towers.find((tower) => tower.kind === "keep");
@@ -242,14 +254,15 @@ function applyWizardMoveInPlace(game, wizardId, steps) {
   const wizard = game.wizards.find((item) => item.id === wizardId);
   if (!wizard || wizard.safe || wizard.capturedBy || wizard.tileIndex == null) return "Không thể thực hiện nước đi";
   const fromTileIndex = wizard.tileIndex;
-  const destination = wrapBoardIndex(wizard.tileIndex + steps, game.board.length);
+  const signedSteps = movementSteps(game, steps);
+  const destination = wrapBoardIndex(wizard.tileIndex + signedSteps, game.board.length);
   if (tileOccupants(game, destination).length >= MAX_WIZARDS_PER_LOCATION) return "Không thể thực hiện nước đi";
   const keep = game.towers.find((tower) => tower.kind === "keep");
   if (mistBlocksKeepEntry(game, destination)) return mistBlockedMessage();
 
   wizard.tileIndex = destination;
   wizard.standingOn = topTower(game, destination)?.id ?? null;
-  recordLastMoves(game, [moveRecord("wizard", wizardId, fromTileIndex, destination, steps)]);
+  recordLastMoves(game, [moveRecord("wizard", wizardId, fromTileIndex, destination, signedSteps)]);
   moveWizardToRenderTop(game, wizardId);
 
   if (destination === keep.tileIndex) {
@@ -264,11 +277,15 @@ function applyWizardMoveInPlace(game, wizardId, steps) {
 
 function moveKeepToNearestLanding(game, fromIndex) {
   const keep = game.towers.find((tower) => tower.kind === "keep");
+  if (!keep) return;
+  const source = keep.tileIndex;
+  const direction = activeReverseMovement(game) ? -1 : 1;
   for (let offset = 1; offset <= game.board.length; offset += 1) {
-    const index = (fromIndex + offset) % game.board.length;
+    const index = wrapBoardIndex(fromIndex + offset * direction, game.board.length);
     if (hasRavenLanding(game, index) && !hasAnyWizardAtTile(game, index)) {
       keep.tileIndex = index;
       keep.level = game.towers.filter((tower) => tower.id !== keep.id && tower.tileIndex === index).length;
+      appendLastMoves(game, [moveRecord("tower", keep.id, source, index, offset * direction)]);
       normalizeTowerLevels(game);
       return;
     }
@@ -277,12 +294,16 @@ function moveKeepToNearestLanding(game, fromIndex) {
 
 function moveKeepToNearestRavenLanding(game, fromIndex) {
   const keep = game.towers.find((tower) => tower.kind === "keep");
+  if (!keep) return;
   const boardSize = game.board.length;
+  const source = keep.tileIndex;
+  const direction = activeReverseMovement(game) ? -1 : 1;
   for (let offset = 1; offset <= boardSize; offset += 1) {
-    const index = (fromIndex + offset) % boardSize;
+    const index = wrapBoardIndex(fromIndex + offset * direction, boardSize);
     if (hasRavenLanding(game, index) && !hasAnyWizardAtTile(game, index)) {
       keep.tileIndex = index;
       keep.level = game.towers.filter((tower) => tower.id !== keep.id && tower.tileIndex === index).length;
+      appendLastMoves(game, [moveRecord("tower", keep.id, source, index, offset * direction)]);
       normalizeTowerLevels(game);
       return;
     }
@@ -312,7 +333,7 @@ export function moveTower(game, towerId, rawValue) {
   const activePlayerId = game.turnOrder[game.currentPlayerIndex];
   const bonus = game.players.find((p) => p.id === activePlayerId)?.bonusStep ?? 0;
   const step = normalizeStep(rawValue);
-  const signedSteps = step.value + bonus;
+  const signedSteps = movementSteps(game, step.value + bonus);
   const destination = wrapBoardIndex(source + signedSteps, game.board.length);
   const keep = game.towers.find((item) => item.kind === "keep");
   const carriesKeep = movingIds.has(keep.id);
@@ -419,8 +440,8 @@ function applyTowerMoveInPlace(game, towerId, steps) {
   if (selectedLevel < 0) return "Không tìm thấy tầng tháp đã chọn.";
   const movingStack = sourceStack.slice(selectedLevel);
   const movingIds = new Set(movingStack.map((item) => item.id));
-  const signedSteps = steps;
-  const destination = wrapBoardIndex(source + steps, game.board.length);
+  const signedSteps = movementSteps(game, steps);
+  const destination = wrapBoardIndex(source + signedSteps, game.board.length);
   const keep = game.towers.find((item) => item.kind === "keep");
   const carriesKeep = movingIds.has(keep.id);
   if (!carriesKeep && destination === keep.tileIndex) return "Tháp không thể kết thúc ở Tháp Đen.";
@@ -496,11 +517,12 @@ export function useForbidden(game, spellId, { free = false, targetId = null, tar
     }
     case "keep-clockwise-step": {
       const source = keep.tileIndex;
-      const destination = (keep.tileIndex + 1) % next.board.length;
+      const signedSteps = movementSteps(next, 1);
+      const destination = wrapBoardIndex(keep.tileIndex + signedSteps, next.board.length);
       if (hasAnyWizardAtTile(next, destination)) { effectMsg = "Ô/tháp kế tiếp không available."; break; }
       keep.tileIndex = destination;
       keep.level = next.towers.filter((tower) => tower.id !== keep.id && tower.tileIndex === destination).length;
-      recordLastMoves(next, [moveRecord("tower", keep.id, source, destination, 1)]);
+      recordLastMoves(next, [moveRecord("tower", keep.id, source, destination, signedSteps)]);
       normalizeTowerLevels(next);
       break;
     }
@@ -614,6 +636,11 @@ export function useForbidden(game, spellId, { free = false, targetId = null, tar
       effectMsg = "Sương mù bao phủ Tháp Đen đến lượt tiếp theo của bạn.";
       break;
     }
+    case "reverse-movement": {
+      next.reverseMovement = { playerId: nextPlayer.id };
+      effectMsg = "Mọi bước đi bị đảo chiều đến lượt tiếp theo của bạn.";
+      break;
+    }
     case "puppet-strings": {
       const steps = Number(valueOverride);
       if (!Number.isFinite(steps)) { effectMsg = "Cần tung xúc xắc trước khi điều khiển pháp sư."; break; }
@@ -622,7 +649,9 @@ export function useForbidden(game, spellId, { free = false, targetId = null, tar
       if (steps === 0) { effectMsg = `${targetWizard.name} không di chuyển.`; break; }
       const err = applyWizardMoveInPlace(next, targetId, steps);
       if (err) effectMsg = err;
-      else effectMsg = `Điều khiển ${targetWizard.name} đi ${steps} bước.`;
+      else effectMsg = activeReverseMovement(next)
+        ? `Điều khiển ${targetWizard.name} đi ${steps} bước ngược chiều.`
+        : `Điều khiển ${targetWizard.name} đi ${steps} bước.`;
       break;
     }
     default: break;
@@ -818,7 +847,10 @@ export function botPlayStep(game) {
   }
 
   const refreshed = replaceSpellbooks(game);
-  delete refreshed.lastBotAction;
+  refreshed.lastBotAction = {
+    playerId: player.id,
+    action: { kind: "spell-exchange" }
+  };
   refreshed.log.unshift(`${player.name} bot không có Sách phép hợp lệ nên refresh bài.`);
   return refreshed;
 }
@@ -885,7 +917,7 @@ function botForbiddenOptions(game, player) {
       continue;
     }
 
-    if (spell.targeting === "auto" && (spell.id === "midnight-step" || spell.id === "keep-clockwise-step" || spell.id === "mist-veil" || spell.id === "forbidden-refresh")) {
+    if (spell.targeting === "auto" && (spell.id === "midnight-step" || spell.id === "keep-clockwise-step" || spell.id === "mist-veil" || spell.id === "reverse-movement" || spell.id === "forbidden-refresh")) {
       const next = useForbidden(game, spell.id);
       options.push({
         kind: "forbidden",
@@ -932,6 +964,7 @@ function scoreBotForbiddenEffect(before, after, playerId, spell) {
   if (before.expansionMode) score += 260;
   if (spell.id === "forbidden-refresh") score += before.expansionMode ? 180 : -80;
   if (spell.id === "mist-veil") score += before.expansionMode ? 240 : 60;
+  if (spell.id === "reverse-movement") score += before.expansionMode ? 220 : 40;
   return score;
 }
 
@@ -1134,10 +1167,13 @@ export function endTurn(game) {
   next.actionsRemaining = 2;
   next.currentPlayerIndex = (next.currentPlayerIndex + 1) % next.turnOrder.length;
   const mistExpired = next.mistVeil?.playerId === next.turnOrder[next.currentPlayerIndex];
+  const reverseExpired = next.reverseMovement?.playerId === next.turnOrder[next.currentPlayerIndex];
   if (mistExpired) next.mistVeil = { ...next.mistVeil, expiring: true };
+  if (reverseExpired) next.reverseMovement = { ...next.reverseMovement, expiring: true };
   next.message = `Đến lượt ${currentPlayer(next).name}.`;
   next.log.unshift(next.message);
   if (mistExpired) next.log.unshift("Sương Mù quanh Tháp Đen đã tan.");
+  if (reverseExpired) next.log.unshift("Nghịch Hành đã tan.");
   return next;
 }
 

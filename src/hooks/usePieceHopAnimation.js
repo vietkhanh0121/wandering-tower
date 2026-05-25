@@ -294,6 +294,7 @@ export function usePieceHopAnimation(game, layoutOptions, { onSafe, onRelease } 
           const keepFlight = buildKeepArcKeyframes({
             fromTileIndex: moveInfo.fromTileIndex,
             toTileIndex: moveInfo.toTileIndex,
+            direction: moveInfo.direction,
             startLevel,
             finalLevel: curTower.level,
             boardSize,
@@ -562,7 +563,7 @@ function getTowerSwapArc({ id, game, prevGame, layoutOptions, isTowerLike, carri
   };
 }
 
-function buildKeepArcKeyframes({ fromTileIndex, toTileIndex, startLevel, finalLevel, boardSize, layoutOptions, fallbackStart }) {
+function buildKeepArcKeyframes({ fromTileIndex, toTileIndex, direction = 1, startLevel, finalLevel, boardSize, layoutOptions, fallbackStart }) {
   const start = towerTileLevelPoint(fromTileIndex, startLevel, layoutOptions);
   const end = towerTileLevelPoint(toTileIndex, finalLevel, layoutOptions);
   if (!start || !end) {
@@ -577,7 +578,7 @@ function buildKeepArcKeyframes({ fromTileIndex, toTileIndex, startLevel, finalLe
 
   const startAngle = Math.atan2(start.y, start.x);
   const endAngle = Math.atan2(end.y, end.x);
-  const deltaAngle = clockwiseAngleDelta(startAngle, endAngle);
+  const deltaAngle = signedAngleDelta(startAngle, endAngle, direction);
   const startRadius = Math.hypot(start.x, start.y);
   const endRadius = Math.hypot(end.x, end.y);
   const lift = Math.max(64, Math.min(118, Math.hypot(end.x - start.x, end.y - start.y) * 0.32));
@@ -615,6 +616,16 @@ function clockwiseAngleDelta(from, to) {
   while (delta < 0) delta += Math.PI * 2;
   while (delta === 0) delta += Math.PI * 2;
   return delta;
+}
+
+function signedAngleDelta(from, to, direction) {
+  if (direction === -1) {
+    let delta = to - from;
+    while (delta > 0) delta -= Math.PI * 2;
+    while (delta === 0) delta -= Math.PI * 2;
+    return delta;
+  }
+  return clockwiseAngleDelta(from, to);
 }
 
 function easeInOutSine(t) {
