@@ -219,11 +219,13 @@ export function DiceOverlay({ context, onRollStart, onRollComplete, readOnly = f
   const rollLimit = Math.max(1, Math.min(2, context?.diceRolls ?? 2));
   const canRoll = rollCount === 0 || rollCount < rollLimit;
   const remoteRollCount = forcedRoll?.rollCount ?? rollCount;
-  const remoteRollText = remoteRollCount <= 1
-    ? `có ${rollLimit} lượt tung xúc xắc`
-    : "tung lại";
   const total = results ? FACE_VALUES[results[0]] : null;
   const subject = context?.type === "tower" ? "Tháp" : "Pháp sư";
+  const remoteRollText = forcedRoll?.value != null && !rolling
+    ? formatDiceResult(subject, forcedRoll.value)
+    : remoteRollCount <= 1
+      ? `có ${rollLimit} lượt tung xúc xắc`
+      : "tung lại";
   const resultText = readOnly
     ? null
     : rolling

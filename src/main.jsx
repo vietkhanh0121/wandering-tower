@@ -335,6 +335,7 @@ function App() {
       delayedRemoteGameRef.current = null;
       setIsRemoteActionDelayPending(false);
       if (!queuedGame) return;
+      setRemoteDiceContext(null);
       applyGameState(queuedGame, { animate: true });
     }, REMOTE_ACTION_APPLY_DELAY_MS);
   }
@@ -456,6 +457,7 @@ function App() {
 
   function showRemoteDiceRoll(playerId, roll) {
     const player = latestGameRef.current?.players.find((item) => item.id === playerId);
+    window.clearTimeout(remoteActionTimerRef.current);
     setRemoteActionVisual(null);
     setRemoteDiceContext({
       playerId,
@@ -466,6 +468,7 @@ function App() {
       forcedRoll: {
         id: `${playerId}-${roll.rollCount}-${roll.face}-${Date.now()}`,
         face: roll.face,
+        value: roll.value,
         rollCount: roll.rollCount
       }
     });
@@ -1029,9 +1032,20 @@ function App() {
       setSelectedSpellId(null);
       setExpandedStackIndex(null);
       const nextGame = botPlayStep(game);
-      if (nextGame.lastBotAction) showSoloBotRemoteMessage(nextGame.lastBotAction);
+      if (nextGame.lastBotDiceRoll) {
+        showRemoteDiceRoll(activePlayer.id, nextGame.lastBotDiceRoll);
+        if (onlineRoomCode) {
+          socketRef.current?.emit("dice-roll", {
+            roomCode: onlineRoomCode,
+            playerId: activePlayer.id,
+            roll: nextGame.lastBotDiceRoll
+          });
+        }
+      } else if (nextGame.lastBotAction) {
+        showSoloBotRemoteMessage(nextGame.lastBotAction);
+      }
       if (isOnlineBotTurn) {
-        if (nextGame.lastBotAction) emitRemoteActionForPlayer(activePlayer.id, nextGame.lastBotAction.action);
+        if (nextGame.lastBotAction && !nextGame.lastBotDiceRoll) emitRemoteActionForPlayer(activePlayer.id, nextGame.lastBotAction.action);
         commitGame(nextGame, activePlayer.id, { applyLocal: false });
       } else {
         scheduleRemoteGameState(nextGame);

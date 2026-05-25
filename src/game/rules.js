@@ -10,6 +10,15 @@ export const SOLO_BOT_DIFFICULTY = {
   HARD: "hard",
   BRUTAL: "brutal"
 };
+const DICE_FACE_VALUES = {
+  1: -2,
+  2: -1,
+  3: 0,
+  4: 1,
+  5: 2,
+  6: 3
+};
+const DICE_VALUES = Object.values(DICE_FACE_VALUES);
 
 const MAX_WIZARDS_PER_LOCATION = 4;
 const TERRAIN_GROUPS = [
@@ -831,21 +840,40 @@ export function botPlayStep(game) {
   const options = collectBotOptions(game, player);
   const best = chooseBotOption(game, player, options);
   if (best && best.score > -500) {
-    const next = best.kind === "forbidden"
-      ? useForbidden(game, best.spell.id, { targetId: best.target.id, valueOverride: best.action?.valueOverride })
-      : playSpell(game, best.spell.id, best.action);
-    next.lastBotAction = buildBotActionVisual(player.id, best);
+    const botDiceRoll = best.kind !== "forbidden" && best.page?.diceRolls ? rollBotDice(best.page) : null;
+    let next;
+    if (best.kind === "forbidden") {
+      next = useForbidden(game, best.spell.id, { targetId: best.target.id, valueOverride: best.action?.valueOverride });
+    } else if (botDiceRoll?.value === 0) {
+      next = resolveZeroStepSpell(game, best.spell.id, best.page.type);
+    } else {
+      const action = botDiceRoll
+        ? { ...best.action, valueOverride: botDiceRoll.value }
+        : best.action;
+      const attempted = playSpell(game, best.spell.id, action);
+      next = botDiceRoll && attempted.actionRejected
+        ? resolveFailedSpellAction(game, best.spell.id, "Không thể thực hiện nước đi")
+        : attempted;
+    }
+    setBotTurnVisual(next, buildBotActionVisual(player.id, best), botDiceRoll);
     next.log.unshift(`${player.name} bot chọn ${best.spell.name} cho ${best.target.name} (${best.score} điểm).`);
     return next;
   }
 
   const refreshed = replaceSpellbooks(game);
-  refreshed.lastBotAction = {
+  setBotTurnVisual(refreshed, {
     playerId: player.id,
     action: { kind: "spell-exchange" }
-  };
+  });
   refreshed.log.unshift(`${player.name} bot không có Sách phép hợp lệ nên refresh bài.`);
   return refreshed;
+}
+
+function setBotTurnVisual(game, action, diceRoll = null) {
+  delete game.lastBotAction;
+  delete game.lastBotDiceRoll;
+  game.lastBotAction = action;
+  if (diceRoll) game.lastBotDiceRoll = diceRoll;
 }
 
 function collectBotOptions(game, player) {
@@ -857,7 +885,10 @@ function collectBotOptions(game, player) {
       const targets = legalTargets(game, player.id, page.type);
       for (const target of targets) {
         const action = { type: page.type, targetId: target.id };
-        const next = playSpell(game, spell.id, action);
+        const diceOutcome = page.diceRolls
+          ? expectedBotDiceOutcome(game, spell, page, action, player.id)
+          : null;
+        const next = diceOutcome?.next ?? playSpell(game, spell.id, action);
         const movedTurn = next.currentPlayerIndex !== game.currentPlayerIndex || next.actionsRemaining < game.actionsRemaining;
         if (movedTurn) {
           options.push({
@@ -865,7 +896,7 @@ function collectBotOptions(game, player) {
             page,
             target,
             action,
-            score: scoreBotAction(game, next, player.id, page, target)
+            score: diceOutcome?.score ?? scoreBotAction(game, next, player.id, page, target)
           });
         }
       }
@@ -873,6 +904,51 @@ function collectBotOptions(game, player) {
   }
 
   return options;
+}
+
+function rollBotDice(page) {
+  const face = 1 + Math.floor(Math.random() * 6);
+  return {
+    face,
+    value: DICE_FACE_VALUES[face],
+    rollCount: 1,
+    isFinal: true,
+    type: page.type,
+    diceRolls: page.diceRolls
+  };
+}
+
+const BOT_DICE_INVALID_SCORE = -1200;
+
+function expectedBotDiceOutcome(game, spell, page, action, playerId) {
+  let representativeOutcome = null;
+  let bestLegalScore = -Infinity;
+  let totalScore = 0;
+  let legalOutcomes = 0;
+
+  for (const value of DICE_VALUES) {
+    const next = value === 0
+      ? resolveZeroStepSpell(game, spell.id, page.type)
+      : playSpell(game, spell.id, { ...action, valueOverride: value });
+    const score = next.actionRejected
+      ? BOT_DICE_INVALID_SCORE
+      : scoreBotAction(game, next, playerId, page, { id: action.targetId });
+
+    totalScore += score;
+    if (!next.actionRejected) {
+      legalOutcomes += 1;
+      if (score > bestLegalScore) {
+        bestLegalScore = score;
+        representativeOutcome = next;
+      }
+    }
+  }
+
+  if (!legalOutcomes) return { next: withMessage(game, "Không thể thực hiện nước đi"), score: -Infinity };
+  return {
+    next: representativeOutcome,
+    score: totalScore / DICE_VALUES.length
+  };
 }
 
 function chooseBotOption(game, player, options) {
@@ -1291,7 +1367,10 @@ function withMessage(game, message) {
 }
 
 function cloneGame(game) {
-  return structuredClone(game);
+  const next = structuredClone(game);
+  delete next.lastBotAction;
+  delete next.lastBotDiceRoll;
+  return next;
 }
 
 function normalizeExpansionPotions(game) {

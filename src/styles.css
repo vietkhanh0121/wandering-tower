@@ -2754,7 +2754,7 @@ body.debug .diceBoard {
   position: absolute;
   display: block;
   content: "";
-  background: #ff9a3c;
+  background: #c96f25;
 }
 
 .tileDirectionArrow span {
@@ -2763,8 +2763,8 @@ body.debug .diceBoard {
   width: 10px;
   height: 4px;
   box-shadow:
-    inset -2px -2px 0 rgba(114, 45, 8, .58),
-    inset 2px 2px 0 rgba(255, 214, 150, .42);
+    inset -2px -2px 0 rgba(72, 27, 6, .64),
+    inset 2px 2px 0 rgba(219, 143, 73, .36);
 }
 
 .tileDirectionArrow::before {
@@ -2780,8 +2780,8 @@ body.debug .diceBoard {
   top: 9px;
   width: 4px;
   height: 4px;
-  background: #ffd696;
-  opacity: .85;
+  background: #d88945;
+  opacity: .78;
 }
 
 .tileDirectionArrow.reverse {
@@ -2796,17 +2796,17 @@ body.debug .diceBoard {
 
 .tileDirectionArrow.reverse span,
 .tileDirectionArrow.reverse::before {
-  background: #b982ff;
+  background: #8550c8;
 }
 
 .tileDirectionArrow.reverse span {
   box-shadow:
-    inset -2px -2px 0 rgba(42, 20, 63, .68),
-    inset 2px 2px 0 rgba(255, 241, 179, .52);
+    inset -2px -2px 0 rgba(31, 13, 49, .72),
+    inset 2px 2px 0 rgba(180, 135, 231, .42);
 }
 
 .tileDirectionArrow.reverse::after {
-  background: #fff1b3;
+  background: #b487e7;
 }
 
 .tileRavenSprite {
