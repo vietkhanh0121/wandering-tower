@@ -21,6 +21,17 @@ const DICE_FACE_VALUES = {
 const DICE_VALUES = Object.values(DICE_FACE_VALUES);
 
 const MAX_WIZARDS_PER_LOCATION = 4;
+const BOT_PHASE = {
+  EARLY: "early",
+  MID: "mid",
+  END: "end",
+  POST_SAFE: "post-safe"
+};
+const BOT_SEARCH = {
+  EASY: { depth: 1, candidateLimit: 4, replyLimit: 0, timeMs: 10 },
+  HARD: { depth: 2, candidateLimit: 4, replyLimit: 2, timeMs: 14 },
+  BRUTAL: { depth: 3, candidateLimit: 6, replyLimit: 3, timeMs: 28 }
+};
 const TERRAIN_GROUPS = [
   { kind: "grass", sprites: ["grass1", "grass2", "grass3"] },
   { kind: "sand", sprites: ["sand1", "sand2", "sand3"] },
@@ -896,6 +907,7 @@ function collectBotOptions(game, player) {
             page,
             target,
             action,
+            next,
             score: diceOutcome?.score ?? scoreBotAction(game, next, player.id, page, target)
           });
         }
@@ -959,8 +971,7 @@ function chooseBotOption(game, player, options) {
 
   const difficulty = game.botDifficulty ?? SOLO_BOT_DIFFICULTY.HARD;
   if (difficulty === SOLO_BOT_DIFFICULTY.EASY) return chooseEasyBotOption(viable);
-  if (difficulty === SOLO_BOT_DIFFICULTY.BRUTAL) return chooseBrutalBotOption(game, player, viable);
-  return viable[0];
+  return chooseSearchBotOption(game, player, viable, botSearchConfig(difficulty));
 }
 
 function chooseEasyBotOption(options) {
@@ -979,24 +990,117 @@ function chooseEasyBotOption(options) {
   return topPool[0];
 }
 
-function chooseBrutalBotOption(game, player, options) {
-  const candidates = options.slice(0, Math.min(6, options.length));
+function botSearchConfig(difficulty) {
+  if (difficulty === SOLO_BOT_DIFFICULTY.BRUTAL) return BOT_SEARCH.BRUTAL;
+  if (difficulty === SOLO_BOT_DIFFICULTY.EASY) return BOT_SEARCH.EASY;
+  return BOT_SEARCH.HARD;
+}
+
+function chooseSearchBotOption(game, player, options, config) {
+  const deadline = performance.now() + config.timeMs;
+  const candidates = options.slice(0, Math.min(config.candidateLimit, options.length));
   let best = candidates[0] ?? null;
   let bestScore = -Infinity;
 
   for (const option of candidates) {
-    const next = option.kind === "forbidden"
-      ? useForbidden(game, option.spell.id, { targetId: option.target.id, valueOverride: option.action?.valueOverride })
-      : playSpell(game, option.spell.id, option.action);
-    const replyPenalty = estimateOpponentReplyPenalty(next, player.id);
-    const brutalScore = option.score - replyPenalty;
-    if (brutalScore > bestScore) {
-      bestScore = brutalScore;
-      best = { ...option, score: brutalScore };
+    if (performance.now() > deadline && best) break;
+    const next = resolveBotOptionNext(game, option);
+    const searchScore = option.score + lookaheadBotScore(next, player.id, config.depth - 1, deadline, config, 0) * 0.58;
+    if (searchScore > bestScore) {
+      bestScore = searchScore;
+      best = { ...option, score: searchScore };
     }
   }
 
   return best;
+}
+
+function resolveBotOptionNext(game, option) {
+  return option.next ?? (option.kind === "forbidden"
+    ? useForbidden(game, option.spell.id, { targetId: option.target.id, valueOverride: option.action?.valueOverride })
+    : playSpell(game, option.spell.id, option.action));
+}
+
+function lookaheadBotScore(game, originalPlayerId, depth, deadline, config, ply) {
+  if (depth <= 0 || winner(game) || performance.now() > deadline) return evaluateBotState(game, originalPlayerId);
+  const player = currentPlayer(game);
+  if (!player) return evaluateBotState(game, originalPlayerId);
+  const options = collectBotOptions(game, player)
+    .filter((option) => Number.isFinite(option.score))
+    .sort((a, b) => b.score - a.score);
+  if (!options.length) return evaluateBotState(game, originalPlayerId);
+
+  const candidateLimit = player.id === originalPlayerId
+    ? config.candidateLimit
+    : Math.max(1, config.replyLimit);
+  const candidates = options.slice(0, Math.min(candidateLimit, options.length));
+
+  if (player.id !== originalPlayerId) {
+    let worst = Infinity;
+    for (const option of candidates) {
+      if (performance.now() > deadline) break;
+      const next = resolveBotOptionNext(game, option);
+      const score = evaluateBotState(next, originalPlayerId) + lookaheadBotScore(next, originalPlayerId, depth - 1, deadline, config, ply + 1) * 0.5;
+      worst = Math.min(worst, score);
+    }
+    return Number.isFinite(worst) ? worst : evaluateBotState(game, originalPlayerId);
+  }
+
+  let best = -Infinity;
+  for (const option of candidates) {
+    if (performance.now() > deadline) break;
+    const next = resolveBotOptionNext(game, option);
+    const score = option.score + lookaheadBotScore(next, originalPlayerId, depth - 1, deadline, config, ply + 1) * 0.5;
+    best = Math.max(best, score);
+  }
+  return Number.isFinite(best) ? best : evaluateBotState(game, originalPlayerId);
+}
+
+function evaluateBotState(game, playerId) {
+  const profile = botScoreProfile(game, playerId);
+  const keep = game.towers.find((tower) => tower.kind === "keep");
+  const boardSize = game.board.length;
+  let score = 0;
+
+  score += playerWizards(game, playerId).filter((wizard) => wizard.safe).length * profile.safeReward;
+  score += fullPotionCount(game, playerId) * profile.potion;
+  score += game.wizards.filter((wizard) => wizard.playerId !== playerId && wizard.capturedBy).length * profile.capture;
+  score -= game.wizards.filter((wizard) => wizard.playerId === playerId && wizard.capturedBy).length * profile.ownCapturedPenalty;
+  score -= game.wizards.filter((wizard) => wizard.playerId !== playerId && wizard.safe).length * profile.opponentSafePenalty;
+
+  if (keep?.tileIndex != null) {
+    playerWizards(game, playerId).forEach((wizard) => {
+      if (wizard.safe) return;
+      if (wizard.capturedBy || wizard.tileIndex == null) {
+        score -= profile.ownCapturedPenalty;
+        return;
+      }
+      const distance = distanceClockwise(wizard.tileIndex, keep.tileIndex, boardSize);
+      score += (boardSize - distance) * profile.ownDistance * 0.32;
+    });
+    score -= scoreOpponentThreat(game, playerId, profile);
+  }
+
+  return score;
+}
+
+function scoreOpponentThreat(game, playerId, profile) {
+  const keep = game.towers.find((tower) => tower.kind === "keep");
+  if (keep?.tileIndex == null) return 0;
+  const boardSize = game.board.length;
+  let penalty = 0;
+  game.players
+    .filter((player) => player.id !== playerId)
+    .forEach((opponent) => {
+      const remaining = activePlayerWizards(game, opponent.id);
+      if (remaining.length === 0 || remaining.length > 2) return;
+      remaining.forEach((wizard) => {
+        if (wizard.safe || wizard.capturedBy || wizard.tileIndex == null) return;
+        const distance = distanceClockwise(wizard.tileIndex, keep.tileIndex, boardSize);
+        if (distance <= 6) penalty += (7 - distance) * profile.defenseStep;
+      });
+    });
+  return penalty;
 }
 
 function estimateOpponentReplyPenalty(game, originalPlayerId) {
@@ -1049,6 +1153,7 @@ function botForbiddenOptions(game, player) {
           kind: "forbidden",
           spell,
           target: wizard,
+          next,
           score: scoreBotForbiddenEffect(game, next, player.id, spell) + (game.expansionMode ? 260 : 0)
         });
       });
@@ -1065,6 +1170,7 @@ function botForbiddenOptions(game, player) {
             spell,
             target: wizard,
             action: { valueOverride: value },
+            next,
             score: scoreBotForbiddenEffect(game, next, player.id, spell) + (game.expansionMode ? 420 : 0)
           });
         });
@@ -1078,6 +1184,7 @@ function botForbiddenOptions(game, player) {
         kind: "forbidden",
         spell,
         target: { id: spell.id, name: spell.name },
+        next,
         score: scoreBotForbiddenEffect(game, next, player.id, spell) + (game.expansionMode ? 320 : 0)
       });
     }
@@ -1103,6 +1210,7 @@ function botForbiddenRescueOptions(game, player, spell) {
         kind: "forbidden",
         spell,
         target: tower,
+        next,
         score: scoreBotForbiddenRescue(game, next, player.id, tower) + (game.expansionMode ? 350 : 0)
       };
     })
@@ -1126,31 +1234,31 @@ function scoreBotForbiddenEffect(before, after, playerId, spell) {
 function scoreBoardProgress(before, after, playerId) {
   const keepBefore = before.towers.find((tower) => tower.kind === "keep");
   const boardSize = before.board.length;
+  const profile = botScoreProfile(before, playerId);
   let score = 0;
 
   const ownSafeBefore = before.wizards.filter((wizard) => wizard.playerId === playerId && wizard.safe).length;
   const ownSafeAfter = after.wizards.filter((wizard) => wizard.playerId === playerId && wizard.safe).length;
-  score += Math.max(0, ownSafeAfter - ownSafeBefore) * 9000;
+  score += Math.max(0, ownSafeAfter - ownSafeBefore) * profile.safeReward;
 
   const opponentSafeBefore = before.wizards.filter((wizard) => wizard.playerId !== playerId && wizard.safe).length;
   const opponentSafeAfter = after.wizards.filter((wizard) => wizard.playerId !== playerId && wizard.safe).length;
-  score -= Math.max(0, opponentSafeAfter - opponentSafeBefore) * 6200;
+  score -= Math.max(0, opponentSafeAfter - opponentSafeBefore) * profile.opponentSafePenalty;
 
   before.wizards.filter((wizard) => wizard.playerId === playerId && !wizard.safe && !wizard.capturedBy && wizard.tileIndex != null).forEach((beforeWizard) => {
     const afterWizard = after.wizards.find((wizard) => wizard.id === beforeWizard.id);
     if (!afterWizard || afterWizard.safe || afterWizard.capturedBy || afterWizard.tileIndex == null || keepBefore?.tileIndex == null) return;
     const beforeDistance = distanceClockwise(beforeWizard.tileIndex, keepBefore.tileIndex, boardSize);
     const afterDistance = distanceClockwise(afterWizard.tileIndex, keepBefore.tileIndex, boardSize);
-    score += (beforeDistance - afterDistance) * 170;
+    score += (beforeDistance - afterDistance) * profile.ownDistance;
+    score += Math.max(0, boardSize - afterDistance) * profile.nearKeep;
   });
-
-  const opponentCapturedBefore = before.wizards.filter((wizard) => wizard.playerId !== playerId && wizard.capturedBy).length;
-  const opponentCapturedAfter = after.wizards.filter((wizard) => wizard.playerId !== playerId && wizard.capturedBy).length;
-  score += (opponentCapturedAfter - opponentCapturedBefore) * (before.expansionMode ? 1900 : 420);
 
   const ownCapturedBefore = before.wizards.filter((wizard) => wizard.playerId === playerId && wizard.capturedBy).length;
   const ownCapturedAfter = after.wizards.filter((wizard) => wizard.playerId === playerId && wizard.capturedBy).length;
-  score -= Math.max(0, ownCapturedAfter - ownCapturedBefore) * 900;
+  score -= Math.max(0, ownCapturedAfter - ownCapturedBefore) * profile.ownCapturedPenalty;
+  score += scoreCapturePotionProgress(before, after, playerId, profile);
+  score += scoreEndgameDefense(before, after, playerId, profile);
 
   return score;
 }
@@ -1171,26 +1279,167 @@ function countReleasedWizards(before, after, playerId) {
   }).length;
 }
 
+function playerWizards(game, playerId) {
+  return game.wizards.filter((wizard) => wizard.playerId === playerId);
+}
+
+function activePlayerWizards(game, playerId) {
+  return playerWizards(game, playerId).filter((wizard) => !wizard.safe);
+}
+
+function fullPotionCount(game, playerId) {
+  return game.players.find((player) => player.id === playerId)?.potions.filter((potion) => potion.state === "full" && !potion.removed).length ?? 0;
+}
+
+function botGamePhase(game, playerId) {
+  const ownWizards = playerWizards(game, playerId);
+  const ownActive = ownWizards.filter((wizard) => !wizard.safe).length;
+  const ownSafe = ownWizards.length - ownActive;
+  const totalSafe = game.wizards.filter((wizard) => wizard.safe).length;
+  const safeRatio = game.wizards.length ? totalSafe / game.wizards.length : 0;
+  const potionTarget = game.players.find((player) => player.id === playerId)?.potions.filter((potion) => !potion.removed).length ?? ownWizards.length;
+  const ownFullPotions = fullPotionCount(game, playerId);
+  const opponentNearFinish = game.players.some((player) => (
+    player.id !== playerId &&
+    activePlayerWizards(game, player.id).length > 0 &&
+    activePlayerWizards(game, player.id).length <= 2
+  ));
+
+  if (ownWizards.length > 0 && ownActive === 0) return BOT_PHASE.POST_SAFE;
+  if (ownActive <= 2 || opponentNearFinish || safeRatio >= 0.55) return BOT_PHASE.END;
+  if (ownSafe > 0 || ownFullPotions >= Math.ceil(Math.max(1, potionTarget) / 2) || safeRatio >= 0.25) return BOT_PHASE.MID;
+  return BOT_PHASE.EARLY;
+}
+
+function botScoreProfile(game, playerId) {
+  const phase = botGamePhase(game, playerId);
+  const expansion = Boolean(game.expansionMode);
+  const profiles = {
+    [BOT_PHASE.EARLY]: {
+      phase,
+      safeReward: 6200,
+      ownDistance: 58,
+      nearKeep: 3,
+      capture: expansion ? 3600 : 1450,
+      potion: expansion ? 3300 : 1250,
+      defense: 2400,
+      defenseStep: 420,
+      opponentSafePenalty: 5600,
+      ownCapturedPenalty: 760
+    },
+    [BOT_PHASE.MID]: {
+      phase,
+      safeReward: 11200,
+      ownDistance: 170,
+      nearKeep: 10,
+      capture: expansion ? 3000 : 850,
+      potion: expansion ? 2500 : 760,
+      defense: 5200,
+      defenseStep: 720,
+      opponentSafePenalty: 6800,
+      ownCapturedPenalty: 900
+    },
+    [BOT_PHASE.END]: {
+      phase,
+      safeReward: 15500,
+      ownDistance: 260,
+      nearKeep: 18,
+      capture: expansion ? 2300 : 620,
+      potion: expansion ? 1900 : 520,
+      defense: 9800,
+      defenseStep: 1300,
+      opponentSafePenalty: 9800,
+      ownCapturedPenalty: 1120
+    },
+    [BOT_PHASE.POST_SAFE]: {
+      phase,
+      safeReward: 0,
+      ownDistance: 0,
+      nearKeep: 0,
+      capture: expansion ? 4300 : 2300,
+      potion: expansion ? 5200 : 3600,
+      defense: 7600,
+      defenseStep: 960,
+      opponentSafePenalty: 7600,
+      ownCapturedPenalty: 0
+    }
+  };
+  return profiles[phase];
+}
+
+function scoreCapturePotionProgress(before, after, playerId, profile) {
+  const opponentCapturedBefore = before.wizards.filter((wizard) => wizard.playerId !== playerId && wizard.capturedBy).length;
+  const opponentCapturedAfter = after.wizards.filter((wizard) => wizard.playerId !== playerId && wizard.capturedBy).length;
+  const opponentCapturedDelta = Math.max(0, opponentCapturedAfter - opponentCapturedBefore);
+  const fullPotionGain = Math.max(0, fullPotionCount(after, playerId) - fullPotionCount(before, playerId));
+  const postSafeBonus = profile.phase === BOT_PHASE.POST_SAFE ? 1.45 : 1;
+  return opponentCapturedDelta * profile.capture * postSafeBonus + fullPotionGain * profile.potion * postSafeBonus;
+}
+
+function scoreEndgameDefense(before, after, playerId, profile) {
+  if (!profile.defense) return 0;
+  const keepBefore = before.towers.find((tower) => tower.kind === "keep");
+  if (keepBefore?.tileIndex == null) return 0;
+  const keepAfter = after.towers.find((tower) => tower.kind === "keep") ?? keepBefore;
+  const boardSize = before.board.length;
+  let score = 0;
+
+  before.players
+    .filter((player) => player.id !== playerId)
+    .forEach((opponent) => {
+      const remaining = activePlayerWizards(before, opponent.id);
+      if (remaining.length === 0 || remaining.length > 2) return;
+      remaining.forEach((beforeWizard) => {
+        if (beforeWizard.capturedBy || beforeWizard.tileIndex == null) return;
+        const afterWizard = after.wizards.find((wizard) => wizard.id === beforeWizard.id);
+        if (!afterWizard) return;
+        const beforeDistance = distanceClockwise(beforeWizard.tileIndex, keepBefore.tileIndex, boardSize);
+        const isImmediateThreat = beforeDistance <= 4;
+        if (!isImmediateThreat && profile.phase !== BOT_PHASE.END && profile.phase !== BOT_PHASE.POST_SAFE) return;
+
+        if (afterWizard.safe) {
+          score -= profile.defense * 1.5;
+          return;
+        }
+        if (afterWizard.capturedBy) {
+          score += profile.defense * (isImmediateThreat ? 0.78 : 0.36);
+          return;
+        }
+        if (afterWizard.tileIndex == null) return;
+        const afterDistance = distanceClockwise(afterWizard.tileIndex, keepAfter.tileIndex, boardSize);
+        const movedAway = afterDistance - beforeDistance;
+        if (afterDistance >= 6) score += profile.defense * (isImmediateThreat ? 1 : 0.42);
+        if (movedAway > 0) score += movedAway * profile.defenseStep;
+        if (isImmediateThreat && beforeDistance <= 2 && afterDistance >= 6) score += profile.defense * 0.5;
+        if (movedAway < 0) score += movedAway * profile.defenseStep * 1.15;
+      });
+    });
+
+  return score;
+}
+
 function scoreBotAction(before, after, playerId, page, target) {
   const keepBefore = before.towers.find((tower) => tower.kind === "keep");
   const boardSize = before.board.length;
-  const expansionMode = Boolean(before.expansionMode);
+  const profile = botScoreProfile(before, playerId);
   let score = 0;
 
   if (page.type === "wizard") {
     const beforeWizard = before.wizards.find((wizard) => wizard.id === target.id);
     const afterWizard = after.wizards.find((wizard) => wizard.id === target.id);
     if (!beforeWizard || !afterWizard) return -Infinity;
-    if (afterWizard.safe && !beforeWizard.safe) return 10000;
+    if (afterWizard.safe && !beforeWizard.safe) return profile.safeReward + scoreCapturePotionProgress(before, after, playerId, profile);
 
     if (afterWizard.tileIndex != null && keepBefore?.tileIndex != null) {
       const beforeDistance = distanceClockwise(beforeWizard.tileIndex, keepBefore.tileIndex, boardSize);
       const afterDistance = distanceClockwise(afterWizard.tileIndex, keepBefore.tileIndex, boardSize);
-      score += (beforeDistance - afterDistance) * 120;
-      score += Math.max(0, 12 - afterDistance) * 8;
+      score += (beforeDistance - afterDistance) * profile.ownDistance;
+      score += Math.max(0, boardSize - afterDistance) * profile.nearKeep;
     }
 
     if (topTower(after, afterWizard.tileIndex)?.kind === "tower") score += 20;
+    score += scoreCapturePotionProgress(before, after, playerId, profile);
+    score += scoreEndgameDefense(before, after, playerId, profile);
     return score;
   }
 
@@ -1212,35 +1461,29 @@ function scoreBotAction(before, after, playerId, page, target) {
 
   const ownSafeBefore = before.wizards.filter((wizard) => wizard.playerId === playerId && wizard.safe).length;
   const ownSafeAfter = after.wizards.filter((wizard) => wizard.playerId === playerId && wizard.safe).length;
-  score += Math.max(0, ownSafeAfter - ownSafeBefore) * 6500;
+  score += Math.max(0, ownSafeAfter - ownSafeBefore) * profile.safeReward;
 
   const opponentSafeBefore = before.wizards.filter((wizard) => wizard.playerId !== playerId && wizard.safe).length;
   const opponentSafeAfter = after.wizards.filter((wizard) => wizard.playerId !== playerId && wizard.safe).length;
-  score -= Math.max(0, opponentSafeAfter - opponentSafeBefore) * 5200;
-
-  const opponentCapturedBefore = before.wizards.filter((wizard) => wizard.playerId !== playerId && wizard.capturedBy).length;
-  const opponentCapturedAfter = after.wizards.filter((wizard) => wizard.playerId !== playerId && wizard.capturedBy).length;
-  const opponentCapturedDelta = opponentCapturedAfter - opponentCapturedBefore;
-  score += opponentCapturedDelta * (expansionMode ? 2400 : 520);
+  score -= Math.max(0, opponentSafeAfter - opponentSafeBefore) * profile.opponentSafePenalty;
 
   const ownCapturedBefore = before.wizards.filter((wizard) => wizard.playerId === playerId && wizard.capturedBy).length;
   const ownCapturedAfter = after.wizards.filter((wizard) => wizard.playerId === playerId && wizard.capturedBy).length;
-  score -= Math.max(0, ownCapturedAfter - ownCapturedBefore) * 700;
+  score -= Math.max(0, ownCapturedAfter - ownCapturedBefore) * profile.ownCapturedPenalty;
 
-  const fullPotionsBefore = currentPlayer(before)?.potions.filter((potion) => potion.state === "full" && !potion.removed).length ?? 0;
-  const fullPotionsAfter = after.players.find((player) => player.id === playerId)?.potions.filter((potion) => potion.state === "full" && !potion.removed).length ?? 0;
-  const fullPotionGain = Math.max(0, fullPotionsAfter - fullPotionsBefore);
-  score += fullPotionGain * (expansionMode ? 1800 : 180);
-  if (expansionMode && fullPotionGain > 0) {
+  const fullPotionGain = Math.max(0, fullPotionCount(after, playerId) - fullPotionCount(before, playerId));
+  score += scoreCapturePotionProgress(before, after, playerId, profile);
+  if (before.expansionMode && fullPotionGain > 0) {
     const cheapestForbiddenCost = Math.min(...before.forbidden.map((spell) => spell.potionCost ?? 1));
-    if (fullPotionsAfter >= cheapestForbiddenCost) score += 900;
+    if (fullPotionCount(after, playerId) >= cheapestForbiddenCost) score += 900;
   }
+  score += scoreEndgameDefense(before, after, playerId, profile);
 
   const movedTowerAfter = after.towers.find((item) => item.id === tower.id);
   if (movedTowerAfter && keepBefore?.tileIndex != null) {
     const beforeDistance = distanceClockwise(tower.tileIndex, keepBefore.tileIndex, boardSize);
     const afterDistance = distanceClockwise(movedTowerAfter.tileIndex, keepBefore.tileIndex, boardSize);
-    score += (beforeDistance - afterDistance) * 12;
+    score += (beforeDistance - afterDistance) * Math.max(8, Math.round(profile.ownDistance * 0.08));
   }
 
   if (tower.hasRaven) score += 20;
