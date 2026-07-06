@@ -1,4 +1,5 @@
 import http from "node:http";
+import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -12,6 +13,18 @@ const PORT = Number(process.env.PORT || process.env.SOCKET_PORT || 3001);
 const HOST = process.env.HOST || "0.0.0.0";
 const PLAYER_LEAVE_GRACE_MS = 10_000;
 const rooms = new Map();
+
+if (process.env.NODE_ENV === "production" && !existsSync(INDEX_HTML)) {
+  console.log("dist/index.html not found. Building production client before starting server...");
+  const build = spawnSync("npm", ["run", "build"], {
+    cwd: __dirname,
+    stdio: "inherit",
+    env: process.env
+  });
+  if (build.status !== 0) {
+    console.error(`Production client build failed with exit code ${build.status ?? "unknown"}.`);
+  }
+}
 
 const app = express();
 app.get("/healthz", (_req, res) => res.status(200).send("ok"));
