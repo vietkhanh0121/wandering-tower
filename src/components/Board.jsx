@@ -191,10 +191,10 @@ export function Board({ game, selectedType, selectableIds, highlightedTileIds, w
 }
 
 function winnerResultSprite(winnerInfo, localPlayerId = "p1") {
-  if (!winnerInfo || winnerInfo.id === "draw") return "/assets/sprites/items/lose.png";
+  if (!winnerInfo || winnerInfo.id === "draw") return spritePath("items/lose");
   return isWinningResult(winnerInfo, localPlayerId)
-    ? "/assets/sprites/items/win.png"
-    : "/assets/sprites/items/lose.png";
+    ? spritePath("items/win")
+    : spritePath("items/lose");
 }
 
 function isWinningResult(winnerInfo, localPlayerId = "p1") {
@@ -219,7 +219,7 @@ function RemoteSpellVisual({ action }) {
   const selected = action.pageType;
   const bookDir = action.wizardColor ? `book-open_${action.wizardColor === "orange" ? "orange1" : action.wizardColor}` : "book-open";
   return (
-    <span className="remoteSpellBook" style={{ "--remote-book": `url('/assets/sprites/items/${bookDir}/frame-8.png')` }}>
+    <span className="remoteSpellBook" style={{ "--remote-book": `url('${spritePath(`items/${bookDir}/frame-8`)}')` }}>
       <span className="remoteSpellPages">
         {["tower", "wizard"].map((type, index) => {
           const page = pages.find((item) => item.type === type);
@@ -234,7 +234,7 @@ function RemoteSpellVisual({ action }) {
             <span key={type} className={pageClass}>
               {page ? (
                 <>
-                  <img src={`/assets/sprites/items/${type === "tower" ? "tower-icon" : "wizard-icon"}.png`} alt="" />
+                  <img src={spritePath(`items/${type === "tower" ? "tower-icon" : "wizard-icon"}`)} alt="" />
                   {page.diceRolls ? (
                     <b className="remoteDicePageValue"><span>{page.diceRolls}</span><i>⚂</i></b>
                   ) : (
@@ -242,7 +242,7 @@ function RemoteSpellVisual({ action }) {
                   )}
                 </>
               ) : (
-                <img className="remoteBlankPageSprite" src="/assets/sprites/items/blank-page.png" alt="" />
+                <img className="remoteBlankPageSprite" src={spritePath("items/blank-page")} alt="" />
               )}
             </span>
           );
@@ -259,7 +259,7 @@ function RemoteForbiddenVisual({ action }) {
     <span className="remoteForbiddenCard">
       <span className="remoteForbiddenCost">
         <span>{cost}x</span>
-        <img src={`/assets/sprites/items/potion-${action.wizardColor ?? "blue"}.png`} alt="" />
+        <img src={spritePath(`items/potion-${action.wizardColor ?? "blue"}`)} alt="" />
       </span>
       <span className="remoteForbiddenEffect">
         {renderRemoteForbiddenEffect(effect)}
@@ -321,7 +321,7 @@ function TurnOrderFace({ face, side }) {
       ) : (
         <>
           Lượt của
-          <img className="turnOrderWizardIcon" src={`/assets/sprites/characters/wizard-face/idle_${face.wizardColor ?? "blue"}.png`} alt="" />
+          <img className="turnOrderWizardIcon" src={spritePath(`characters/wizard-face/idle_${face.wizardColor ?? "blue"}`)} alt="" />
         </>
       )}
     </span>

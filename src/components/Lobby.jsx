@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Check, Copy, Settings } from "lucide-react";
+import { publicPath } from "../lib/assets";
 
 export function Lobby({ onStart, onCreateOnlineRoom, onJoinOnlineRoom, onContinueWithBots, onLeaveOnlineRoom, onlineStatus = "", onlineRoomCode = "", onlinePlayerId = "", onlinePlayers = [], onlinePlayerCount = 2, isOnlineHost = false, soundEnabled = true, onToggleSound, expansionMode = false, onToggleExpansionMode }) {
   const [count, setCount] = useState(2);
@@ -15,12 +16,12 @@ export function Lobby({ onStart, onCreateOnlineRoom, onJoinOnlineRoom, onContinu
 
   return (
     <div className="lobbyView">
-      <img className="lobbyWizardHome" src="/assets/backgrounds/wizard-homescreen.png" alt="" aria-hidden="true" />
-      <img className="lobbyCloud lobbyCloudTop" src="/assets/backgrounds/cloud1.png" alt="" aria-hidden="true" />
-      <img className="lobbyCloud lobbyCloudBottom" src="/assets/backgrounds/cloud2.png" alt="" aria-hidden="true" />
+      <img className="lobbyWizardHome" src={publicPath("assets/backgrounds/wizard-homescreen.png")} alt="" aria-hidden="true" />
+      <img className="lobbyCloud lobbyCloudTop" src={publicPath("assets/backgrounds/cloud1.png")} alt="" aria-hidden="true" />
+      <img className="lobbyCloud lobbyCloudBottom" src={publicPath("assets/backgrounds/cloud2.png")} alt="" aria-hidden="true" />
       <div className="lobbyContent">
         <header className="lobbyHeader">
-          <img className="lobbyLogo" src="/assets/backgrounds/logo.png" alt="Wondering Tower" />
+          <img className="lobbyLogo" src={publicPath("assets/backgrounds/logo.png")} alt="Wondering Tower" />
           <span>với em gối</span>
         </header>
 
@@ -134,10 +135,10 @@ export function Lobby({ onStart, onCreateOnlineRoom, onJoinOnlineRoom, onContinu
           <section className="lobbyIntroPanel">
             <h2 id="lobby-intro-title">Wondering Tower</h2>
             <div className="lobbyGuideSprites" aria-hidden="true">
-              <img src="/assets/sprites/characters/wizard/idle-1.png" alt="" />
-              <img src="/assets/sprites/towers/tower.png" alt="" />
-              <img src="/assets/sprites/items/spell-book-icon.png" alt="" />
-              <img src="/assets/sprites/items/potion-blue.png" alt="" />
+              <img src={publicPath("assets/sprites/characters/wizard/idle-1.png")} alt="" />
+              <img src={publicPath("assets/sprites/towers/tower.png")} alt="" />
+              <img src={publicPath("assets/sprites/items/spell-book-icon.png")} alt="" />
+              <img src={publicPath("assets/sprites/items/potion-blue.png")} alt="" />
               <span>⚂</span>
             </div>
             <p>Dẫn pháp sư của bạn quanh bản đồ, leo lên các tháp và tìm đường về Tháp Đen.</p>
@@ -223,7 +224,7 @@ function OnlinePlayerSlots({ total, active }) {
         <img
           key={index}
           className={index < activeCount ? "active" : ""}
-          src="/assets/sprites/characters/wizard-face/idle_blue.png"
+          src={publicPath("assets/sprites/characters/wizard-face/idle_blue.png")}
           alt=""
           aria-hidden="true"
         />

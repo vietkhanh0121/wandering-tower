@@ -49,7 +49,7 @@ function OnlineLeaveNotice({ players, game, timedOutPlayers, isHost, onContinueW
               return (
                 <img
                   key={player.id}
-                  src={`/assets/sprites/characters/wizard-face/idle_${wizardColor}.png`}
+                  src={publicPath(`assets/sprites/characters/wizard-face/idle_${wizardColor}.png`)}
                   alt=""
                 />
               );
@@ -614,7 +614,7 @@ function App() {
   const visibleHandPlayer = isBotTurn ? localPlayer : activePlayer;
   const bookDir = BOOK_DIR[visibleHandPlayer?.wizardColor] ?? "book-open";
   const bookVars = Object.fromEntries(
-    Array.from({ length: 8 }, (_, i) => [`--book-f${i + 1}`, `url('/assets/sprites/items/${bookDir}/frame-${i + 1}.png')`])
+    Array.from({ length: 8 }, (_, i) => [`--book-f${i + 1}`, `url('${publicPath(`assets/sprites/items/${bookDir}/frame-${i + 1}.png`)}')`])
   );
   const selectedSpell = visibleHandPlayer?.hand.find((spell) => spell.id === selectedSpellId);
   const availableActions = selectedSpell?.pages.map((page) => page.type) ?? [];
@@ -728,7 +728,7 @@ function App() {
   const displayedActivePlayer = (displayedPlayerId && game?.players.find((p) => p.id === displayedPlayerId)) ?? activePlayer;
   const displayedIsLocalTurn = displayedActivePlayer?.id === localPlayerId;
 
-  const forbiddenPotionSprite = `/assets/sprites/items/potion-${localPlayer?.wizardColor ?? "blue"}.png`;
+  const forbiddenPotionSprite = publicPath(`assets/sprites/items/potion-${localPlayer?.wizardColor ?? "blue"}.png`);
   const selectableIds = useMemo(() => {
     if (!game || !selectedSpell || isBotTurn) return new Set();
     if (!availableActions.includes(selectedType)) return new Set();
@@ -1489,7 +1489,7 @@ function App() {
                             const page = spell.pages[0].type === type ? spell.pages[0] : null;
                             return (
                               <span key={type} className={page ? "spellPageFace" : "spellPageFace blank"}>
-                                <img src={page ? `/assets/sprites/items/${type === "tower" ? "tower-icon" : "wizard-icon"}.png` : "/assets/sprites/items/blank-page.png"} alt="" />
+                                <img src={page ? publicPath(`assets/sprites/items/${type === "tower" ? "tower-icon" : "wizard-icon"}.png`) : publicPath("assets/sprites/items/blank-page.png")} alt="" />
                                 {page && <SpellPageValue page={page} bonusStep={visibleHandPlayer?.bonusStep ?? 0} />}
                               </span>
                             );
@@ -1509,7 +1509,7 @@ function App() {
                               aria-label={spellPageAriaLabel(page)}
                             >
                               <span className="spellPageFace">
-                                <img src={`/assets/sprites/items/${page.type === "tower" ? "tower-icon" : "wizard-icon"}.png`} alt="" />
+                                <img src={publicPath(`assets/sprites/items/${page.type === "tower" ? "tower-icon" : "wizard-icon"}.png`)} alt="" />
                                   <SpellPageValue page={page} bonusStep={visibleHandPlayer?.bonusStep ?? 0} />
                               </span>
                             </button>
