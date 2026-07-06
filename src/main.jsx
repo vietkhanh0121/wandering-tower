@@ -31,6 +31,7 @@ const SOCKET_URL = import.meta.env.VITE_SOCKET_URL ?? (import.meta.env.PROD ? wi
 import { useForbiddenTargeting } from "./hooks/useForbiddenTargeting";
 import { usePieceHopAnimation } from "./hooks/usePieceHopAnimation";
 import { playClick } from "./lib/sounds";
+import { publicPath } from "./lib/assets";
 import { PRELOAD_IMAGE_PATHS, preloadImages } from "./lib/preload-assets";
 import "./styles.css";
 import "./design-system.css";
@@ -269,9 +270,9 @@ function App() {
 
     Promise.all([
       Promise.all([
-        loadJson("/data/tiles.json"),
-        loadJson("/data/forbidden-spells.json"),
-        loadJson("/data/spellbooks.json")
+        loadJson(publicPath("data/tiles.json")),
+        loadJson(publicPath("data/forbidden-spells.json")),
+        loadJson(publicPath("data/spellbooks.json"))
       ]),
       preloadImages(PRELOAD_IMAGE_PATHS, (progress) => {
         if (!cancelled) setLoadState({ ...progress, ready: false, error: "" });
