@@ -3,6 +3,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
+    "prestart": "npm run build",
     "start": "node server.mjs",
     "server": "node server.mjs",
     "socket": "node server.mjs",
