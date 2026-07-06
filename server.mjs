@@ -28,6 +28,14 @@ if (process.env.NODE_ENV === "production" && !existsSync(INDEX_HTML)) {
 
 const app = express();
 app.get("/healthz", (_req, res) => res.status(200).send("ok"));
+app.get("/version", (_req, res) => res.status(200).json({
+  commit: process.env.RENDER_GIT_COMMIT ?? process.env.COMMIT_SHA ?? "local",
+  builtAt: process.env.RENDER_GIT_COMMIT ? null : new Date().toISOString()
+}));
+app.get("/sw.js", (_req, res, next) => {
+  res.set("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+  next();
+});
 
 if (existsSync(INDEX_HTML)) {
   app.use(express.static(DIST_DIR));
