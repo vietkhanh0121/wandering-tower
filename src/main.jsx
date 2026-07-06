@@ -100,7 +100,7 @@ function App() {
   const [onlineHostId, setOnlineHostId] = useState("");
   const [onlineStatus, setOnlineStatus] = useState("");
   const [onlineConnected, setOnlineConnected] = useState(false);
-  const [loadState, setLoadState] = useState({ loaded: 0, total: PRELOAD_IMAGE_PATHS.length, ready: false });
+  const [loadState, setLoadState] = useState({ loaded: 0, total: PRELOAD_IMAGE_PATHS.length, ready: false, error: "" });
   const [selectedSpellId, setSelectedSpellId] = useState(null);
   const [selectedType, setSelectedType] = useState("wizard");
   const [diceSpellRoll, setDiceSpellRoll] = useState(null);
@@ -274,12 +274,20 @@ function App() {
         loadJson("/data/spellbooks.json")
       ]),
       preloadImages(PRELOAD_IMAGE_PATHS, (progress) => {
-        if (!cancelled) setLoadState({ ...progress, ready: false });
+        if (!cancelled) setLoadState({ ...progress, ready: false, error: "" });
       })
     ]).then(([[tiles, forbiddenSpells, spellbooks]]) => {
       if (cancelled) return;
       setData({ tiles, forbiddenSpells, spellbooks: sanitizeSpellbooks(spellbooks) });
-      setLoadState({ loaded: PRELOAD_IMAGE_PATHS.length, total: PRELOAD_IMAGE_PATHS.length, ready: true });
+      setLoadState({ loaded: PRELOAD_IMAGE_PATHS.length, total: PRELOAD_IMAGE_PATHS.length, ready: true, error: "" });
+    }).catch((error) => {
+      console.error("Failed to load game assets", error);
+      if (!cancelled) {
+        setLoadState((current) => ({
+          ...current,
+          error: "Không tải được dữ liệu game. Hãy reload lại trang."
+        }));
+      }
     });
 
     return () => {
@@ -1200,7 +1208,7 @@ function App() {
           <div className="loadingTrack" aria-label="Đang tải assets" aria-valuemin="0" aria-valuemax="100" aria-valuenow={progressValue} role="progressbar">
             <span style={{ "--load-progress": `${progressValue}%` }} />
           </div>
-          <small>{progressValue}%</small>
+          <small>{loadState.error || `${progressValue}%`}</small>
         </section>
       </main>
     );

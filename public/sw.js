@@ -1,4 +1,4 @@
-const CACHE_NAME = "wandering-tower-v2";
+const CACHE_NAME = "wandering-tower-v3";
 const SCOPE_PATH = new URL(self.registration.scope).pathname.replace(/\/$/, "");
 const scopedPath = (path) => `${SCOPE_PATH}${path}`;
 const APP_SHELL = [
@@ -28,6 +28,12 @@ self.addEventListener("activate", (event) => {
         name === CACHE_NAME ? null : caches.delete(name)
       ))))
       .then(() => self.clients.claim())
+      .then(() => self.clients.matchAll({ type: "window" }))
+      .then((clients) => {
+        clients.forEach((client) => {
+          if ("navigate" in client) client.navigate(client.url);
+        });
+      })
   );
 });
 
@@ -37,17 +43,21 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(request.url);
   if (url.origin !== location.origin) return;
 
-  event.respondWith(
-    caches.match(request).then((cached) => {
-      const network = fetch(request).then((response) => {
-        if (response && response.ok) {
-          const copy = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
-        }
-        return response;
-      }).catch(() => cached);
+  const isNavigation = request.mode === "navigate" || request.destination === "document";
 
-      return cached || network;
-    })
+  event.respondWith(
+    fetch(request).then((response) => {
+      if (response && response.ok) {
+        const copy = response.clone();
+        caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
+      }
+      return response;
+    }).catch(() => (
+      caches.match(request).then((cached) => {
+        if (cached) return cached;
+        if (isNavigation) return caches.match(scopedPath("/index.html"));
+        return Response.error();
+      })
+    ))
   );
 });
