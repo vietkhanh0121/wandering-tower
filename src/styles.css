@@ -264,7 +264,7 @@ button:disabled {
   background: rgba(5, 10, 14, .58);
   color: #fff6c9;
   font: inherit;
-  font-size: 14px;
+  font-size: 16px;
   text-align: center;
   text-transform: uppercase;
   outline: 0;
@@ -748,11 +748,13 @@ button:disabled {
   --safe-right: env(safe-area-inset-right, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --safe-left: env(safe-area-inset-left, 0px);
+  --game-viewport-height: 100vh;
   --game-safe-pad-top: max(10px, var(--safe-top));
   --game-safe-pad-right: max(8px, var(--safe-right));
   --game-safe-pad-bottom: max(14px, var(--safe-bottom));
   --game-safe-pad-left: max(8px, var(--safe-left));
-  min-height: 100dvh;
+  min-height: var(--game-viewport-height);
+  height: var(--game-viewport-height);
   display: flex;
   flex-direction: row;
   align-items: center;
@@ -805,10 +807,10 @@ button:disabled {
 .phoneGame {
   width: min(
     calc(100vw - var(--game-safe-pad-left) - var(--game-safe-pad-right)),
-    calc((100dvh - var(--game-safe-pad-top) - var(--game-safe-pad-bottom)) * 9 / 19.5),
+    calc((var(--game-viewport-height) - var(--game-safe-pad-top) - var(--game-safe-pad-bottom)) * 9 / 19.5),
     480px
   );
-  height: min(calc(100dvh - var(--game-safe-pad-top) - var(--game-safe-pad-bottom)), 1040px);
+  height: min(calc(var(--game-viewport-height) - var(--game-safe-pad-top) - var(--game-safe-pad-bottom)), 1040px);
   max-width: 480px;
   max-height: none;
   position: relative;
@@ -846,6 +848,12 @@ button:disabled {
 
 .phoneGame.lobbyPhoneGame {
   overflow: hidden;
+}
+
+@supports (height: 100svh) {
+  .app {
+    --game-viewport-height: 100svh;
+  }
 }
 
 .hud {
@@ -4205,6 +4213,8 @@ body.debug .diceBoard {
 }
 
 .infoPanel {
+  position: relative;
+  z-index: 80;
   min-height: 0;
   overflow: visible;
   display: grid;
@@ -4443,7 +4453,8 @@ body.debug .diceBoard {
   display: grid;
   place-items: center;
   transform: none;
-  z-index: 3;
+  z-index: 120;
+  isolation: isolate;
 }
 
 .localAvatar {
@@ -4463,7 +4474,7 @@ body.debug .diceBoard {
   position: absolute;
   right: -23px;
   top: -13px;
-  z-index: 4;
+  z-index: 9999;
   min-width: 31px;
   min-height: 19px;
   display: grid;

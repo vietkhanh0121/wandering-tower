@@ -105,6 +105,8 @@ export function Lobby({ onStart, onCreateOnlineRoom, onJoinOnlineRoom, onContinu
                     value={joinCode}
                     maxLength={4}
                     inputMode="numeric"
+                    enterKeyHint="done"
+                    virtualKeyboardPolicy="overlays-content"
                     pattern="[0-9]*"
                     onChange={(event) => setJoinCode(event.target.value.replace(/\D/g, "").slice(0, 4))}
                     placeholder="1234"
