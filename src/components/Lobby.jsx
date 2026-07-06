@@ -1,14 +1,7 @@
 import { useEffect, useState } from "react";
 import { Check, Copy, Settings } from "lucide-react";
-import { publicPath } from "../lib/assets";
 
-const SOLO_DIFFICULTY_OPTIONS = [
-  { id: "easy", label: "Dễ" },
-  { id: "hard", label: "Khó" },
-  { id: "brutal", label: "Khó vãi lều" }
-];
-
-export function Lobby({ onStart, onCreateOnlineRoom, onJoinOnlineRoom, onContinueWithBots, onLeaveOnlineRoom, onlineStatus = "", onlineRoomCode = "", onlinePlayerId = "", onlinePlayers = [], onlinePlayerCount = 2, isOnlineHost = false, soundEnabled = true, onToggleSound, expansionMode = false, onToggleExpansionMode, botDifficulty = "hard", onBotDifficultyChange }) {
+export function Lobby({ onStart, onCreateOnlineRoom, onJoinOnlineRoom, onContinueWithBots, onLeaveOnlineRoom, onlineStatus = "", onlineRoomCode = "", onlinePlayerId = "", onlinePlayers = [], onlinePlayerCount = 2, isOnlineHost = false, soundEnabled = true, onToggleSound, expansionMode = false, onToggleExpansionMode }) {
   const [count, setCount] = useState(2);
   const [view, setView] = useState("mode");
   const [showIntro, setShowIntro] = useState(false);
@@ -22,12 +15,12 @@ export function Lobby({ onStart, onCreateOnlineRoom, onJoinOnlineRoom, onContinu
 
   return (
     <div className="lobbyView">
-      <img className="lobbyWizardHome" src={publicPath("assets/backgrounds/wizard-homescreen.png")} alt="" aria-hidden="true" />
-      <img className="lobbyCloud lobbyCloudTop" src={publicPath("assets/backgrounds/cloud1.png")} alt="" aria-hidden="true" />
-      <img className="lobbyCloud lobbyCloudBottom" src={publicPath("assets/backgrounds/cloud2.png")} alt="" aria-hidden="true" />
+      <img className="lobbyWizardHome" src="/assets/backgrounds/wizard-homescreen.png" alt="" aria-hidden="true" />
+      <img className="lobbyCloud lobbyCloudTop" src="/assets/backgrounds/cloud1.png" alt="" aria-hidden="true" />
+      <img className="lobbyCloud lobbyCloudBottom" src="/assets/backgrounds/cloud2.png" alt="" aria-hidden="true" />
       <div className="lobbyContent">
         <header className="lobbyHeader">
-          <img className="lobbyLogo" src={publicPath("assets/backgrounds/logo.png")} alt="Wandering Tower" />
+          <img className="lobbyLogo" src="/assets/backgrounds/logo.png" alt="Wondering Tower" />
           <span>với em gối</span>
         </header>
 
@@ -54,14 +47,9 @@ export function Lobby({ onStart, onCreateOnlineRoom, onJoinOnlineRoom, onContinu
           <div className="lobbyPanel">
             <span className="lobbyModeName">Solo</span>
             <PlayerCountPicker count={count} setCount={setCount} />
-            <DifficultyPicker difficulty={botDifficulty} onChange={onBotDifficultyChange} />
-            <button className={expansionMode ? "settingsSwitchRow active" : "settingsSwitchRow"} type="button" role="switch" aria-checked={expansionMode} onClick={() => onToggleExpansionMode?.()}>
-              <span>Bản mở rộng</span>
-              <span className="settingsSwitch" aria-hidden="true">
-                <span className="settingsSwitchKnob" />
-              </span>
-            </button>
-            <button className="lobbyStartBtn" onClick={() => onStart(count, { expansionMode, botDifficulty })}>
+            <small className="lobbyModeHint">{count - 1} bot</small>
+            <ExpansionSwitch expansionMode={expansionMode} onToggleExpansionMode={onToggleExpansionMode} />
+            <button className="lobbyStartBtn" onClick={() => onStart(count, { expansionMode })}>
               Bắt đầu
             </button>
             <button className="lobbyBackBtn" onClick={() => setView("mode")}>
@@ -103,6 +91,7 @@ export function Lobby({ onStart, onCreateOnlineRoom, onJoinOnlineRoom, onContinu
               <>
                 <div className="onlineCreateSection">
                   <PlayerCountPicker count={count} setCount={setCount} />
+                  <ExpansionSwitch expansionMode={expansionMode} onToggleExpansionMode={onToggleExpansionMode} />
                   <button className="lobbyStartBtn" type="button" onClick={() => onCreateOnlineRoom?.(count)}>
                     Tạo phòng
                   </button>
@@ -143,12 +132,12 @@ export function Lobby({ onStart, onCreateOnlineRoom, onJoinOnlineRoom, onContinu
       {showIntro && (
         <div className="lobbyIntroOverlay" role="dialog" aria-modal="true" aria-labelledby="lobby-intro-title">
           <section className="lobbyIntroPanel">
-            <h2 id="lobby-intro-title">Wandering Tower</h2>
+            <h2 id="lobby-intro-title">Wondering Tower</h2>
             <div className="lobbyGuideSprites" aria-hidden="true">
-              <img src={publicPath("assets/sprites/characters/wizard/idle-1.png")} alt="" />
-              <img src={publicPath("assets/sprites/towers/tower.png")} alt="" />
-              <img src={publicPath("assets/sprites/items/spell-book-icon.png")} alt="" />
-              <img src={publicPath("assets/sprites/items/potion-blue.png")} alt="" />
+              <img src="/assets/sprites/characters/wizard/idle-1.png" alt="" />
+              <img src="/assets/sprites/towers/tower.png" alt="" />
+              <img src="/assets/sprites/items/spell-book-icon.png" alt="" />
+              <img src="/assets/sprites/items/potion-blue.png" alt="" />
               <span>⚂</span>
             </div>
             <p>Dẫn pháp sư của bạn quanh bản đồ, leo lên các tháp và tìm đường về Tháp Đen.</p>
@@ -181,6 +170,17 @@ export function Lobby({ onStart, onCreateOnlineRoom, onJoinOnlineRoom, onContinu
         </div>
       )}
     </div>
+  );
+}
+
+function ExpansionSwitch({ expansionMode, onToggleExpansionMode }) {
+  return (
+    <button className={expansionMode ? "settingsSwitchRow active" : "settingsSwitchRow"} type="button" role="switch" aria-checked={expansionMode} onClick={() => onToggleExpansionMode?.()}>
+      <span>Bản mở rộng</span>
+      <span className="settingsSwitch" aria-hidden="true">
+        <span className="settingsSwitchKnob" />
+      </span>
+    </button>
   );
 }
 
@@ -223,7 +223,7 @@ function OnlinePlayerSlots({ total, active }) {
         <img
           key={index}
           className={index < activeCount ? "active" : ""}
-          src={publicPath("assets/sprites/characters/wizard-face/idle_blue.png")}
+          src="/assets/sprites/characters/wizard-face/idle_blue.png"
           alt=""
           aria-hidden="true"
         />
@@ -257,7 +257,7 @@ function OnlineLeaveLobbyNotice({ players, isHost, onContinueWithBots, onLeaveOn
 
 function PlayerCountPicker({ count, setCount, disabled = false }) {
   return (
-    <div className="lobbyControlRow lobbyCountPicker">
+    <div className="lobbyCountPicker">
       <span>Số người chơi</span>
       <div className="lobbyCountToggle" role="group" aria-label="Số người chơi">
         {[2, 3].map((n) => (
@@ -268,29 +268,6 @@ function PlayerCountPicker({ count, setCount, disabled = false }) {
             disabled={disabled}
           >
             {n}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function DifficultyPicker({ difficulty, onChange }) {
-  const activeIndex = Math.max(0, SOLO_DIFFICULTY_OPTIONS.findIndex((option) => option.id === difficulty));
-
-  return (
-    <div className="lobbyControlRow lobbyDifficultyPicker">
-      <span>Độ khó</span>
-      <div className="lobbyDifficultySegmented" role="group" aria-label={`Độ khó bot: ${SOLO_DIFFICULTY_OPTIONS[activeIndex]?.label ?? "Khó"}`}>
-        {SOLO_DIFFICULTY_OPTIONS.map((option, index) => (
-          <button
-            key={option.id}
-            type="button"
-            className={index === activeIndex ? "lobbyDifficultySegment miniButton active" : "lobbyDifficultySegment miniButton"}
-            aria-label={option.label}
-            onClick={() => onChange?.(option.id)}
-          >
-            {index + 1}
           </button>
         ))}
       </div>

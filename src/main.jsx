@@ -1,8 +1,8 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
-import { House, RotateCw } from "lucide-react";
+import { House, RotateCw, Settings } from "lucide-react";
 import { io } from "socket.io-client";
-import { Board, SlotMachineOverlay, TurnMapPrompt } from "./components/Board";
+import { Board, SlotMachineOverlay } from "./components/Board";
 import { DebugBar } from "./components/DebugBar";
 import { Details, OpponentPanel } from "./components/Details";
 import { ForbiddenRow } from "./components/ForbiddenRow";
@@ -10,7 +10,6 @@ import { Lobby } from "./components/Lobby";
 import { PotionStirOverlay } from "./components/PotionStirOverlay";
 import {
   PLAYER_PRESETS,
-  SOLO_BOT_DIFFICULTY,
   botPlayStep,
   buildNewGame,
   currentPlayer,
@@ -28,13 +27,9 @@ import { TILE_STEP_Y, TOWER_LEVEL_HEIGHT } from "./game/tower-layout";
 
 const BOOK_DIR = { blue: "book-open_blue", red: "book-open_red", green: "book-open_green", orange: "book-open_orange1" };
 const FORBIDDEN_HAND_NOTE = "Dùng Bí thuật sẽ tiêu hao bình thuốc, kể cả khi hiệu ứng không thực hiện được.";
-const REMOTE_ACTION_VISIBLE_MS = 2600;
-const REMOTE_ACTION_APPLY_DELAY_MS = 2000;
-const CONFIGURED_SOCKET_URL = import.meta.env.VITE_SOCKET_URL?.trim();
-const SOCKET_URL = CONFIGURED_SOCKET_URL || (import.meta.env.PROD ? window.location.origin : "http://localhost:3001");
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL ?? (import.meta.env.PROD ? window.location.origin : "http://localhost:3001");
 import { useForbiddenTargeting } from "./hooks/useForbiddenTargeting";
 import { usePieceHopAnimation } from "./hooks/usePieceHopAnimation";
-import { publicCssUrl, publicPath } from "./lib/assets";
 import { playClick } from "./lib/sounds";
 import { PRELOAD_IMAGE_PATHS, preloadImages } from "./lib/preload-assets";
 import "./styles.css";
@@ -53,7 +48,7 @@ function OnlineLeaveNotice({ players, game, timedOutPlayers, isHost, onContinueW
               return (
                 <img
                   key={player.id}
-                  src={publicPath(`assets/sprites/characters/wizard-face/idle_${wizardColor}.png`)}
+                  src={`/assets/sprites/characters/wizard-face/idle_${wizardColor}.png`}
                   alt=""
                 />
               );
@@ -97,7 +92,6 @@ function App() {
   const captureStateRef = useRef(null);
   const socketRef = useRef(null);
   const onlineRef = useRef({ roomCode: "", playerId: "" });
-  const pendingOnlineUpdateRef = useRef(null);
   const onlineStartedRoomsRef = useRef(new Set());
   const onlineLeaveRequestedRef = useRef(false);
   const [onlineRoomCode, setOnlineRoomCode] = useState("");
@@ -115,9 +109,6 @@ function App() {
   const [remoteDiceContext, setRemoteDiceContext] = useState(null);
   const [remoteActionVisual, setRemoteActionVisual] = useState(null);
   const remoteActionTimerRef = useRef(null);
-  const delayedRemoteGameTimerRef = useRef(null);
-  const delayedRemoteGameRef = useRef(null);
-  const [isRemoteActionDelayPending, setIsRemoteActionDelayPending] = useState(false);
   const [closingSpell, setClosingSpell] = useState(null);
   const [closingBooks, setClosingBooks] = useState([]);
   const [isWaitingForDeal, setIsWaitingForDeal] = useState(false);
@@ -181,28 +172,20 @@ function App() {
   }
   const onReleaseRef = useRef(null);
   onReleaseRef.current = (wizardIds) => {
-    const rects = wizardIds
-      .map((wizardId) => document.querySelector(`[data-flip-id="${wizardId}"]`)?.getBoundingClientRect())
-      .filter(Boolean);
-    if (!rects.length) return;
-    const left = Math.min(...rects.map((rect) => rect.left));
-    const top = Math.min(...rects.map((rect) => rect.top));
-    const right = Math.max(...rects.map((rect) => rect.right));
-    const bottom = Math.max(...rects.map((rect) => rect.bottom));
-    spawnSparkle(wizardIds.join("-"), {
-      left,
-      top,
-      width: right - left,
-      height: bottom - top
-    }, 0.75);
+    for (const wizardId of wizardIds) {
+      const wizardEl = document.querySelector(`[data-flip-id="${wizardId}"]`);
+      if (!wizardEl) continue;
+      spawnSparkle(wizardId, wizardEl.getBoundingClientRect(), 0.75);
+    }
   };
 
   const [pendingDealIds, setPendingDealIds] = useState(() => new Set());
   const [wizardExpression, setWizardExpression] = useState("idle");
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [debugWizards, setDebugWizards] = useState(false);
-  const [soloExpansionMode, setSoloExpansionMode] = useState(false);
-  const [soloBotDifficulty, setSoloBotDifficulty] = useState(SOLO_BOT_DIFFICULTY.HARD);
+  const [expansionMode, setExpansionMode] = useState(false);
+  const [idleActivityTick, setIdleActivityTick] = useState(0);
+  const [idleReminderVisible, setIdleReminderVisible] = useState(false);
   useEffect(() => { document.body.classList.toggle("debug", debugWizards); }, [debugWizards]);
   useEffect(() => {
     const sequence = ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"];
@@ -238,8 +221,6 @@ function App() {
   const previousHandsRef = useRef(new Map());
   const previousSpellRectsRef = useRef(new Map());
   const spellCardRefs = useRef(new Map());
-  const bottomDeckRef = useRef(null);
-  const turnStatusButtonRefs = useRef(new Map());
   const clickedSelectedSpellRef = useRef(null);
   const suppressSpellClickRef = useRef(false);
   const recentlyDrawnIdsRef = useRef(new Set());
@@ -284,13 +265,13 @@ function App() {
 
   useEffect(() => {
     let cancelled = false;
-    const loadJson = (path) => fetch(`${publicPath(path)}?v=${Date.now()}`, { cache: "no-store" }).then((response) => response.json());
+    const loadJson = (path) => fetch(`${path}?v=${Date.now()}`, { cache: "no-store" }).then((response) => response.json());
 
     Promise.all([
       Promise.all([
-        loadJson("data/tiles.json"),
-        loadJson("data/forbidden-spells.json"),
-        loadJson("data/spellbooks.json")
+        loadJson("/data/tiles.json"),
+        loadJson("/data/forbidden-spells.json"),
+        loadJson("/data/spellbooks.json")
       ]),
       preloadImages(PRELOAD_IMAGE_PATHS, (progress) => {
         if (!cancelled) setLoadState({ ...progress, ready: false });
@@ -314,31 +295,7 @@ function App() {
     socketRef.current?.disconnect();
     socketRef.current = null;
     window.clearTimeout(remoteActionTimerRef.current);
-    window.clearTimeout(delayedRemoteGameTimerRef.current);
   }, []);
-
-  function applyGameState(nextGame, { animate = false } = {}) {
-    if (animate && latestGameRef.current && latestScreenRef.current === "game") {
-      captureStateRef.current?.(latestGameRef.current);
-    }
-    setGame(nextGame);
-    setPlayerColors(nextGame.players.map(({ id, name, color, wizardColor }) => ({ id, name, color, wizardColor })));
-    setScreen("game");
-  }
-
-  function scheduleRemoteGameState(nextGame) {
-    delayedRemoteGameRef.current = nextGame;
-    setIsRemoteActionDelayPending(true);
-    window.clearTimeout(delayedRemoteGameTimerRef.current);
-    delayedRemoteGameTimerRef.current = window.setTimeout(() => {
-      const queuedGame = delayedRemoteGameRef.current;
-      delayedRemoteGameRef.current = null;
-      setIsRemoteActionDelayPending(false);
-      if (!queuedGame) return;
-      setRemoteDiceContext(null);
-      applyGameState(queuedGame, { animate: true });
-    }, REMOTE_ACTION_APPLY_DELAY_MS);
-  }
 
   function getSocket() {
     if (socketRef.current) return socketRef.current;
@@ -346,7 +303,6 @@ function App() {
     socket.on("connect", () => {
       setOnlineConnected(true);
       setOnlineStatus("Đã kết nối server local.");
-      if (pendingOnlineUpdateRef.current) sendOnlineGameUpdate(pendingOnlineUpdateRef.current);
     });
     socket.on("disconnect", () => {
       setOnlineConnected(false);
@@ -363,28 +319,21 @@ function App() {
       if (room.playerCount) setPlayerCount(room.playerCount);
       if (room.game) {
         const currentGame = latestGameRef.current;
-        if (pendingOnlineUpdateRef.current && isSameSyncedGame(pendingOnlineUpdateRef.current.game, room.game)) {
-          pendingOnlineUpdateRef.current = null;
-        }
         if (currentGame && isSameSyncedGame(currentGame, room.game)) {
           setPlayerColors(room.game.players.map(({ id, name, color, wizardColor }) => ({ id, name, color, wizardColor })));
           setScreen("game");
           return;
         }
         const shouldAnimateRemoteState = room.lastEvent !== "reset-game" && room.lastEvent !== "start-game";
-        const shouldDelayRemoteState = shouldAnimateRemoteState &&
-          currentGame &&
-          latestScreenRef.current === "game" &&
-          room.lastActorId &&
-          room.lastActorId !== onlineRef.current.playerId;
+        if (shouldAnimateRemoteState && currentGame && latestScreenRef.current === "game") {
+          captureStateRef.current?.(currentGame);
+        }
         if (room.lastActorId && room.lastActorId !== onlineRef.current.playerId) {
           setRemoteDiceContext((current) => current?.playerId === room.lastActorId ? null : current);
         }
-        if (shouldDelayRemoteState) {
-          scheduleRemoteGameState(room.game);
-        } else {
-          applyGameState(room.game, { animate: shouldAnimateRemoteState && currentGame && latestScreenRef.current === "game" });
-        }
+        setGame(room.game);
+        setPlayerColors(room.game.players.map(({ id, name, color, wizardColor }) => ({ id, name, color, wizardColor })));
+        setScreen("game");
       } else if (room.code) {
         const readyCount = (room.players ?? []).filter((player) => player.connected || player.bot).length;
         const neededCount = room.playerCount ?? 2;
@@ -408,46 +357,11 @@ function App() {
     return socket;
   }
 
-  function commitGame(nextGame, actorPlayerId = onlineRef.current.playerId, options = {}) {
-    if (options.applyLocal !== false) setGame(nextGame);
+  function commitGame(nextGame, actorPlayerId = onlineRef.current.playerId) {
+    setGame(nextGame);
     const { roomCode } = onlineRef.current;
     if (!roomCode || !actorPlayerId) return;
-    const update = {
-      id: `${actorPlayerId}-${Date.now()}-${Math.random().toString(36).slice(2)}`,
-      roomCode,
-      playerId: actorPlayerId,
-      game: nextGame,
-      attempts: 0
-    };
-    pendingOnlineUpdateRef.current = update;
-    sendOnlineGameUpdate(update);
-  }
-
-  function sendOnlineGameUpdate(update) {
-    if (!update || pendingOnlineUpdateRef.current?.id !== update.id) return;
-    const socket = socketRef.current ?? getSocket();
-    if (!socket.connected) {
-      setOnlineStatus("Đang chờ kết nối để đồng bộ lượt...");
-      return;
-    }
-    socket.timeout(3500).emit(
-      "update-game",
-      { roomCode: update.roomCode, playerId: update.playerId, game: update.game },
-      (error, response) => {
-        if (pendingOnlineUpdateRef.current?.id !== update.id) return;
-        if (!error && response?.ok) {
-          pendingOnlineUpdateRef.current = null;
-          return;
-        }
-        const attempts = update.attempts + 1;
-        if (attempts <= 3) {
-          pendingOnlineUpdateRef.current = { ...update, attempts };
-          window.setTimeout(() => sendOnlineGameUpdate(pendingOnlineUpdateRef.current), 450 * attempts);
-          return;
-        }
-        setOnlineStatus(response?.message ?? "Không đồng bộ được lượt. Hãy thử tải lại hoặc vào lại phòng.");
-      }
-    );
+    socketRef.current?.emit("update-game", { roomCode, playerId: actorPlayerId, game: nextGame });
   }
 
   function isSameSyncedGame(a, b) {
@@ -457,7 +371,6 @@ function App() {
 
   function showRemoteDiceRoll(playerId, roll) {
     const player = latestGameRef.current?.players.find((item) => item.id === playerId);
-    window.clearTimeout(remoteActionTimerRef.current);
     setRemoteActionVisual(null);
     setRemoteDiceContext({
       playerId,
@@ -468,7 +381,6 @@ function App() {
       forcedRoll: {
         id: `${playerId}-${roll.rollCount}-${roll.face}-${Date.now()}`,
         face: roll.face,
-        value: roll.value,
         rollCount: roll.rollCount
       }
     });
@@ -486,7 +398,7 @@ function App() {
     });
     remoteActionTimerRef.current = window.setTimeout(() => {
       setRemoteActionVisual(null);
-    }, REMOTE_ACTION_VISIBLE_MS);
+    }, 2600);
   }
 
   function showSoloBotRemoteMessage(botAction) {
@@ -495,23 +407,13 @@ function App() {
     showRemoteActionVisual(botAction.playerId, botAction.action);
   }
 
-  function emitRemoteActionForPlayer(playerId, action) {
-    if (!onlineRoomCode || !playerId || !action) return;
+  function emitRemoteAction(action) {
+    if (!onlineRoomCode || !onlinePlayerId || !action) return;
     socketRef.current?.emit("remote-action", {
       roomCode: onlineRoomCode,
-      playerId,
+      playerId: onlinePlayerId,
       action
     });
-  }
-
-  function emitRemoteAction(action) {
-    emitRemoteActionForPlayer(onlinePlayerId, action);
-  }
-
-  function exchangeSpellbooks() {
-    emitRemoteAction({ kind: "spell-exchange" });
-    commitGame(replaceSpellbooks(game));
-    setSelectedSpellId(null);
   }
 
   useEffect(() => {
@@ -540,13 +442,7 @@ function App() {
     const presets = PLAYER_PRESETS.map((preset, i) => ({ ...shuffledVisuals[i], id: preset.id }));
     setPlayerColors(presets);
     setPlayerCount(count);
-    setGame(buildNewGame({
-      ...data,
-      playerCount: count,
-      playerPresets: presets,
-      expansionMode: Boolean(options.expansionMode),
-      botDifficulty: options.botDifficulty ?? soloBotDifficulty
-    }));
+    setGame(buildNewGame({ ...data, playerCount: count, playerPresets: presets, expansionMode: Boolean(options.expansionMode) }));
     setSelectedSpellId(null);
     setIsWaitingForDeal(false);
     setScreen("game");
@@ -565,9 +461,6 @@ function App() {
     setOnlineStatus("");
     setRemoteDiceContext(null);
     setRemoteActionVisual(null);
-    delayedRemoteGameRef.current = null;
-    window.clearTimeout(delayedRemoteGameTimerRef.current);
-    setIsRemoteActionDelayPending(false);
     setSelectedSpellId(null);
     setDiceSpellRoll(null);
     setDiceSpellLocked(false);
@@ -588,13 +481,7 @@ function App() {
       setOnlineStatus("Chỉ host có thể tạo ván mới trong phòng online.");
       return;
     }
-    const nextGame = buildNewGame({
-      ...data,
-      playerCount,
-      playerPresets: playerColors,
-      expansionMode: Boolean(game?.expansionMode),
-      botDifficulty: game?.botDifficulty ?? soloBotDifficulty
-    });
+    const nextGame = buildNewGame({ ...data, playerCount, playerPresets: playerColors, expansionMode: Boolean(game?.expansionMode) });
     setGame(nextGame);
     if (onlineRoomCode && isOnlineHost) {
       socketRef.current?.emit("reset-game", { roomCode: onlineRoomCode, game: nextGame });
@@ -699,7 +586,7 @@ function App() {
     if (onlineStartedRoomsRef.current.has(onlineRoomCode)) return;
     onlineStartedRoomsRef.current.add(onlineRoomCode);
     const presets = PLAYER_PRESETS.slice(0, playerCount);
-    const nextGame = buildNewGame({ ...data, playerCount, playerPresets: presets });
+    const nextGame = buildNewGame({ ...data, playerCount, playerPresets: presets, expansionMode });
     setPlayerColors(presets);
     setSelectedSpellId(null);
     setIsWaitingForDeal(false);
@@ -707,7 +594,7 @@ function App() {
     setGame(nextGame);
     setScreen("game");
     socketRef.current?.emit("start-game", { roomCode: onlineRoomCode, playerCount, game: nextGame });
-  }, [data, onlineRoomCode, onlineHostId, onlinePlayers, playerCount, game]);
+  }, [data, onlineRoomCode, onlineHostId, onlinePlayers, playerCount, game, expansionMode]);
 
   const activePlayer = game ? currentPlayer(game) : null;
   const isOnlineGame = Boolean(onlineRoomCode && onlinePlayerId);
@@ -718,7 +605,7 @@ function App() {
   const visibleHandPlayer = isBotTurn ? localPlayer : activePlayer;
   const bookDir = BOOK_DIR[visibleHandPlayer?.wizardColor] ?? "book-open";
   const bookVars = Object.fromEntries(
-    Array.from({ length: 8 }, (_, i) => [`--book-f${i + 1}`, publicCssUrl(`assets/sprites/items/${bookDir}/frame-${i + 1}.png`)])
+    Array.from({ length: 8 }, (_, i) => [`--book-f${i + 1}`, `url('/assets/sprites/items/${bookDir}/frame-${i + 1}.png')`])
   );
   const selectedSpell = visibleHandPlayer?.hand.find((spell) => spell.id === selectedSpellId);
   const availableActions = selectedSpell?.pages.map((page) => page.type) ?? [];
@@ -744,6 +631,45 @@ function App() {
     ? onlinePlayers.filter((player) => !player.connected && !player.bot)
     : [];
   const timedOutMissingPlayers = missingOnlinePlayers.filter((player) => player.timedOut);
+  const canShowIdleReminder = Boolean(
+    game &&
+    activePlayer?.id === localPlayerId &&
+    !isBotTurn &&
+    !closingSpell &&
+    !isWaitingForDeal &&
+    !isAnimatingPieces &&
+    !activeWinner &&
+    !showMenu &&
+    !confirmOverlay &&
+    !remoteDiceContext &&
+    !remoteActionVisual &&
+    missingOnlinePlayers.length === 0
+  );
+  const idleReminderMessage = selectedSpellId || pendingForbidden
+    ? "Chọn mục tiêu trên bản đồ để tiếp tục."
+    : "Đến lượt bạn rồi. Chọn Sách phép hoặc Bí thuật nhé.";
+
+  useEffect(() => {
+    setIdleReminderVisible(false);
+    if (!canShowIdleReminder) return undefined;
+    const timer = window.setTimeout(() => {
+      setIdleReminderVisible(true);
+    }, 5000);
+    return () => window.clearTimeout(timer);
+  }, [
+    canShowIdleReminder,
+    activePlayer?.id,
+    game?.currentPlayerIndex,
+    selectedSpellId,
+    selectedType,
+    pendingForbidden?.spellId,
+    pendingForbidden?.firstTarget,
+    diceSpellRoll?.value,
+    debugShowDiceOverlay,
+    expandedForbiddenId,
+    expandedStackIndex,
+    idleActivityTick
+  ]);
 
   useLayoutEffect(() => {
     if (!selectedSpellId || !selectedType) {
@@ -781,103 +707,19 @@ function App() {
   }, [isAnimatingPieces, game]);
 
   useEffect(() => {
-    if ((!game?.mistVeil?.expiring && !game?.reverseMovement?.expiring) || isAnimatingPieces) return;
+    if (!game?.mistVeil?.expiring || isAnimatingPieces) return;
     setGame((current) => {
-      if (!current?.mistVeil?.expiring && !current?.reverseMovement?.expiring) return current;
+      if (!current?.mistVeil?.expiring) return current;
       const next = { ...current };
-      if (next.mistVeil?.expiring) delete next.mistVeil;
-      if (next.reverseMovement?.expiring) delete next.reverseMovement;
+      delete next.mistVeil;
       return next;
     });
-  }, [game?.mistVeil?.expiring, game?.reverseMovement?.expiring, isAnimatingPieces]);
+  }, [game?.mistVeil?.expiring, isAnimatingPieces]);
 
   const displayedActivePlayer = (displayedPlayerId && game?.players.find((p) => p.id === displayedPlayerId)) ?? activePlayer;
   const displayedIsLocalTurn = displayedActivePlayer?.id === localPlayerId;
-  const reverseMovementActive = Boolean(game?.reverseMovement?.playerId && !game.reverseMovement.expiring);
-  const turnStatusItems = useMemo(() => ([
-    reverseMovementActive
-      ? {
-          id: "reverse-movement",
-          label: "Nghịch hành",
-          description: data?.forbiddenSpells?.find((spell) => spell.id === "reverse-movement")?.effect ?? "Đến lượt tiếp theo của bạn, mọi người chơi di chuyển ngược chiều kim đồng hồ",
-          tone: "reverse"
-        }
-      : null,
-    game?.mistVeil?.playerId && !game.mistVeil.expiring
-      ? {
-          id: "mist-veil",
-          label: "Khóa Tháp Đen",
-          description: data?.forbiddenSpells?.find((spell) => spell.id === "mist-veil")?.effect ?? "Đến lượt tiếp theo của bạn, pháp sư không thể nhảy vào Tháp Đen",
-          tone: "mist"
-        }
-      : null
-  ].filter(Boolean)), [
-    data?.forbiddenSpells,
-    game?.mistVeil?.expiring,
-    game?.mistVeil?.playerId,
-    game?.reverseMovement?.expiring,
-    game?.reverseMovement?.playerId,
-    reverseMovementActive
-  ]);
-  const turnStatusKey = turnStatusItems.map((item) => item.id).join("|");
-  const [animatedTurnStatusItems, setAnimatedTurnStatusItems] = useState([]);
-  const [activeTurnStatusId, setActiveTurnStatusId] = useState(null);
-  const [turnStatusTooltipX, setTurnStatusTooltipX] = useState(120);
-  useEffect(() => {
-    const incomingById = new Map(turnStatusItems.map((item) => [item.id, item]));
-    setAnimatedTurnStatusItems((previous) => {
-      const previousById = new Map(previous.map((item) => [item.id, item]));
-      const next = turnStatusItems.map((item) => ({
-        ...item,
-        exiting: false,
-        entered: Boolean(previousById.get(item.id)?.entered)
-      }));
-      previous.forEach((item) => {
-        if (!incomingById.has(item.id) && !item.exiting) next.push({ ...item, exiting: true });
-      });
-      return next;
-    });
-    const enterTimer = setTimeout(() => {
-      setAnimatedTurnStatusItems((previous) => previous.map((item) => ({ ...item, entered: true })));
-    }, 20);
-    const exitTimer = setTimeout(() => {
-      setAnimatedTurnStatusItems((previous) => previous.filter((item) => !item.exiting));
-    }, 260);
-    return () => {
-      clearTimeout(enterTimer);
-      clearTimeout(exitTimer);
-    };
-  }, [turnStatusKey, turnStatusItems]);
-  const activeTurnStatusItem = turnStatusItems.find((item) => item.id === activeTurnStatusId) ?? null;
-  useLayoutEffect(() => {
-    if (!activeTurnStatusItem) return undefined;
-    function updateTurnStatusTooltipX() {
-      const deck = bottomDeckRef.current;
-      const button = turnStatusButtonRefs.current.get(activeTurnStatusItem.id);
-      if (!deck || !button) return;
-      const deckRect = deck.getBoundingClientRect();
-      const buttonRect = button.getBoundingClientRect();
-      setTurnStatusTooltipX(Math.round(buttonRect.left + buttonRect.width / 2 - deckRect.left));
-    }
-    updateTurnStatusTooltipX();
-    window.addEventListener("resize", updateTurnStatusTooltipX);
-    return () => window.removeEventListener("resize", updateTurnStatusTooltipX);
-  }, [activeTurnStatusItem]);
-  useEffect(() => {
-    if (!activeTurnStatusId) return;
-    if (!turnStatusItems.some((item) => item.id === activeTurnStatusId)) setActiveTurnStatusId(null);
-  }, [activeTurnStatusId, turnStatusItems]);
-  const globalStatusActive = turnStatusItems.length > 0;
-  useEffect(() => {
-    if (!activeTurnStatusId) return undefined;
-    function closeTurnStatusTooltip() {
-      setActiveTurnStatusId(null);
-    }
-    window.addEventListener("click", closeTurnStatusTooltip);
-    return () => window.removeEventListener("click", closeTurnStatusTooltip);
-  }, [activeTurnStatusId]);
 
-  const forbiddenPotionSprite = publicPath(`assets/sprites/items/potion-${localPlayer?.wizardColor ?? "blue"}.png`);
+  const forbiddenPotionSprite = `/assets/sprites/items/potion-${localPlayer?.wizardColor ?? "blue"}.png`;
   const selectableIds = useMemo(() => {
     if (!game || !selectedSpell || isBotTurn) return new Set();
     if (!availableActions.includes(selectedType)) return new Set();
@@ -888,8 +730,6 @@ function App() {
     effectiveSelectableIds,
     effectiveSelectedType,
     highlightedTileIds,
-    highlightedTowerIds,
-    highlightedTileTone,
     resolveTileToTopTower
   } = useForbiddenTargeting({ game, pendingForbidden, selectableIds, selectedType });
 
@@ -1027,32 +867,21 @@ function App() {
   useEffect(() => {
     const isOnlineBotTurn = isOnlineGame && isOnlineHost && onlinePlayers.some((player) => player.id === activePlayer?.id && player.bot);
     const isOfflineBotTurn = !isOnlineGame && isBotTurn;
-    if (!game || !activePlayer || (!isOfflineBotTurn && !isOnlineBotTurn) || closingSpell || isWaitingForDeal || isAnimatingPieces || isRemoteActionDelayPending || activeWinner) return;
+    if (!game || !activePlayer || (!isOfflineBotTurn && !isOnlineBotTurn) || closingSpell || isWaitingForDeal || isAnimatingPieces || activeWinner) return;
     const timer = window.setTimeout(() => {
+      captureState();
       setSelectedSpellId(null);
       setExpandedStackIndex(null);
       const nextGame = botPlayStep(game);
-      if (nextGame.lastBotDiceRoll) {
-        showRemoteDiceRoll(activePlayer.id, nextGame.lastBotDiceRoll);
-        if (onlineRoomCode) {
-          socketRef.current?.emit("dice-roll", {
-            roomCode: onlineRoomCode,
-            playerId: activePlayer.id,
-            roll: nextGame.lastBotDiceRoll
-          });
-        }
-      } else if (nextGame.lastBotAction) {
-        showSoloBotRemoteMessage(nextGame.lastBotAction);
-      }
+      if (!isOnlineGame && nextGame.lastBotAction) showSoloBotRemoteMessage(nextGame.lastBotAction);
       if (isOnlineBotTurn) {
-        if (nextGame.lastBotAction && !nextGame.lastBotDiceRoll) emitRemoteActionForPlayer(activePlayer.id, nextGame.lastBotAction.action);
-        commitGame(nextGame, activePlayer.id, { applyLocal: false });
+        commitGame(nextGame, activePlayer.id);
       } else {
-        scheduleRemoteGameState(nextGame);
+        setGame(nextGame);
       }
     }, 700);
     return () => window.clearTimeout(timer);
-  }, [activePlayer?.id, game, isBotTurn, isOnlineGame, isOnlineHost, onlinePlayers, closingSpell, isWaitingForDeal, isAnimatingPieces, isRemoteActionDelayPending, activeWinner]);
+  }, [activePlayer?.id, game, isBotTurn, isOnlineGame, isOnlineHost, onlinePlayers, closingSpell, isWaitingForDeal, isAnimatingPieces, activeWinner]);
 
   useLayoutEffect(() => {
     if (!visibleHandPlayer) return;
@@ -1367,8 +1196,8 @@ function App() {
     return (
       <main className="loading">
         <section className="loadingPanel">
-          <strong>Loading</strong>
-          <div className="loadingTrack" aria-label="Loading" aria-valuemin="0" aria-valuemax="100" aria-valuenow={progressValue} role="progressbar">
+          <strong>Đang mở cổng Ravenskeep...</strong>
+          <div className="loadingTrack" aria-label="Đang tải assets" aria-valuemin="0" aria-valuemax="100" aria-valuenow={progressValue} role="progressbar">
             <span style={{ "--load-progress": `${progressValue}%` }} />
           </div>
           <small>{progressValue}%</small>
@@ -1409,10 +1238,8 @@ function App() {
             isOnlineHost={Boolean(isOnlineHost)}
             soundEnabled={soundEnabled}
             onToggleSound={() => setSoundEnabled((value) => !value)}
-            expansionMode={soloExpansionMode}
-            onToggleExpansionMode={() => setSoloExpansionMode((value) => !value)}
-            botDifficulty={soloBotDifficulty}
-            onBotDifficultyChange={setSoloBotDifficulty}
+            expansionMode={expansionMode}
+            onToggleExpansionMode={() => setExpansionMode((value) => !value)}
           />
         </section>
       </main>
@@ -1468,11 +1295,12 @@ function App() {
         />
       )}
       <section
-        className={[
-          "phoneGame",
-          globalStatusActive ? "globalStatusActive" : "",
-          reverseMovementActive ? "reverseMovementBackdrop" : ""
-        ].filter(Boolean).join(" ")}
+        className="phoneGame"
+        onPointerDownCapture={() => {
+          if (!canShowIdleReminder) return;
+          setIdleReminderVisible(false);
+          setIdleActivityTick((value) => value + 1);
+        }}
         onClickCapture={(event) => {
           const target = event.target;
           const clickedSpellCard = target.closest?.(".spellCard");
@@ -1517,6 +1345,11 @@ function App() {
         ))}
         {debugShowSlotMachine && <SlotMachineOverlay onClose={() => setDebugShowSlotMachine(false)} />}
         {debugShowPotionMinigame && <PotionStirOverlay onClose={() => setDebugShowPotionMinigame(false)} debug={debugWizards} />}
+        <div className="gameTopControls">
+          <button className="statusMenuBtn" onClick={() => setShowMenu(true)} aria-label="Settings">
+            <Settings size={16} />
+          </button>
+        </div>
         <OpponentPanel game={game} activePlayerId={displayedActivePlayer?.id} localPlayerId={localPlayerId} />
 
         <Board
@@ -1524,8 +1357,6 @@ function App() {
           selectedType={effectiveSelectedType}
           selectableIds={effectiveSelectableIds}
           highlightedTileIds={highlightedTileIds}
-          highlightedTowerIds={highlightedTowerIds}
-          highlightedTileTone={highlightedTileTone}
           winnerInfo={visibleWinnerInfo}
           localPlayerId={localPlayerId}
           onNewGame={(activeWinner || debugShowWinBanner || debugShowLoseBanner) && (!isOnlineGame || isOnlineHost) ? requestNewGameConfirm : null}
@@ -1547,6 +1378,13 @@ function App() {
           diceReadOnly={Boolean(remoteDiceContext)}
           diceForcedRoll={remoteDiceContext?.forcedRoll ?? null}
           actionVisual={remoteActionVisual}
+          idleReminder={idleReminderVisible ? idleReminderMessage : ""}
+          turnPrompt={{
+            isLocalTurn: displayedIsLocalTurn,
+            wizardColor: displayedActivePlayer?.wizardColor ?? "blue",
+            color: displayedActivePlayer?.color ?? "#050608",
+            key: `${displayedIsLocalTurn ? "local" : "opponent"}-${displayedActivePlayer?.id ?? "none"}`
+          }}
           onDiceRollStart={handleDiceRollStart}
           onDiceRollComplete={handleDiceRollComplete}
           debugShowSlotMachine={debugShowSlotMachine}
@@ -1570,59 +1408,7 @@ function App() {
           onLeaveOnlineRoom={leaveOnlineRoom}
         />
 
-        <section
-          ref={bottomDeckRef}
-          className={isResultVisible ? "bottomDeck controlsLocked" : "bottomDeck"}
-          style={{
-            "--turn-color": displayedActivePlayer?.color ?? "#4aa3ff"
-          }}
-        >
-          <div className="turnOrderRow">
-            <TurnMapPrompt
-              className="turnMapPrompt-control"
-              prompt={{
-                isLocalTurn: displayedIsLocalTurn,
-                wizardColor: displayedActivePlayer?.wizardColor ?? "blue",
-                color: displayedActivePlayer?.color ?? "#050608",
-                key: `${displayedIsLocalTurn ? "local" : "opponent"}-${displayedActivePlayer?.id ?? "none"}`
-              }}
-            />
-            <div className="turnStatusSlot" aria-live="polite">
-              {animatedTurnStatusItems.map((item) => (
-                <button
-                  key={item.id}
-                  type="button"
-                  ref={(element) => {
-                    if (element) turnStatusButtonRefs.current.set(item.id, element);
-                    else turnStatusButtonRefs.current.delete(item.id);
-                  }}
-                  className={`turnStatusPill turnStatusPill-${item.tone}${item.exiting ? " exiting" : ""}${item.entered ? " entered" : ""}`}
-                  title={item.description}
-                  aria-label={item.description}
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    if (item.exiting) return;
-                    setActiveTurnStatusId((current) => current === item.id ? null : item.id);
-                  }}
-                >
-                  {item.label}
-                </button>
-              ))}
-            </div>
-          </div>
-          {activeTurnStatusItem && (
-            <div
-              className={`turnStatusTooltipLayer turnStatusTooltipLayer-${activeTurnStatusItem.tone}`}
-              onClick={() => setActiveTurnStatusId(null)}
-            >
-              <div
-                className="turnStatusTooltip"
-                style={{ "--turn-status-tooltip-x": `${turnStatusTooltipX}px` }}
-              >
-                {activeTurnStatusItem.description}
-              </div>
-            </div>
-          )}
+        <section className={isResultVisible ? "bottomDeck controlsLocked" : "bottomDeck"}>
           <div className="forbiddenArea">
             <ForbiddenRow
               spells={game.forbidden}
@@ -1657,7 +1443,7 @@ function App() {
               <button
                 className="handExchangeBtn"
                 disabled={isBotTurn}
-                onClick={exchangeSpellbooks}
+                onClick={() => { commitGame(replaceSpellbooks(game)); setSelectedSpellId(null); }}
               >
                 Đổi Sách phép
               </button>
@@ -1694,7 +1480,7 @@ function App() {
                             const page = spell.pages[0].type === type ? spell.pages[0] : null;
                             return (
                               <span key={type} className={page ? "spellPageFace" : "spellPageFace blank"}>
-                                <img src={page ? publicPath(`assets/sprites/items/${type === "tower" ? "tower-icon" : "wizard-icon"}.png`) : publicPath("assets/sprites/items/blank-page.png")} alt="" />
+                                <img src={page ? `/assets/sprites/items/${type === "tower" ? "tower-icon" : "wizard-icon"}.png` : "/assets/sprites/items/blank-page.png"} alt="" />
                                 {page && <SpellPageValue page={page} bonusStep={visibleHandPlayer?.bonusStep ?? 0} />}
                               </span>
                             );
@@ -1714,7 +1500,7 @@ function App() {
                               aria-label={spellPageAriaLabel(page)}
                             >
                               <span className="spellPageFace">
-                                <img src={publicPath(`assets/sprites/items/${page.type === "tower" ? "tower-icon" : "wizard-icon"}.png`)} alt="" />
+                                <img src={`/assets/sprites/items/${page.type === "tower" ? "tower-icon" : "wizard-icon"}.png`} alt="" />
                                   <SpellPageValue page={page} bonusStep={visibleHandPlayer?.bonusStep ?? 0} />
                               </span>
                             </button>
@@ -1741,7 +1527,6 @@ function App() {
               isLocalTurn={displayedIsLocalTurn}
               expression={wizardExpression}
               onEndTurn={() => commitGame(endTurn(game))}
-              onOpenSettings={() => setShowMenu(true)}
             />
           </div>
         </section>

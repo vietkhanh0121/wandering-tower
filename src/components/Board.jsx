@@ -4,7 +4,6 @@ import { tileOccupants, towerStack } from "../game/rules";
 import { shouldShiftBoardForExpandedStack, towerArcOffset, towerArcTilt } from "../game/tower-stack-view";
 import { assignWizardSlots, wizardDebugLabel, wizardVisualTileIndex } from "../game/wizard-view";
 import { WIZARD_EMPTY_TILE_EXTRA_OFFSET_Y, WIZARD_STAND_OFFSET_Y } from "../game/wizard-layout";
-import { publicCssUrl, publicPath } from "../lib/assets";
 import { spritePath, tileSpritePath } from "../lib/sprites";
 import { DiceOverlay } from "./DiceOverlay";
 
@@ -51,7 +50,7 @@ function towerArcOffsetAtLevel(pos, level, total) {
   };
 }
 
-export function Board({ game, selectedType, selectableIds, highlightedTileIds, highlightedTowerIds, highlightedTileTone = "default", winnerInfo, localPlayerId = "p1", isForbiddenTargeting, forbiddenTargetType, onPlayTarget, onForbiddenDeselect, onUseForbidden, imprisoningTowerIds, onNewGame, debugWizards, debugShowTowers, debugShowWizards, debugShowWizardNames, debugShowTowerNames, debugShowTileNames, debugShowTowerPaths, debugShowDiceOverlay, diceContext, diceReadOnly, diceForcedRoll, actionVisual, onDiceRollStart, onDiceRollComplete, debugShowSlotMachine, tileStepY, towerStackStep, wizardOffsetY, towerJumpPaths, hiddenShadowTileIndexes, lingeringCapturedWizardIds, lingeringSafeWizards, expandedStackIndex, onSetExpandedStackIndex, statusBarContent, turnStartContent }) {
+export function Board({ game, selectedType, selectableIds, highlightedTileIds, winnerInfo, localPlayerId = "p1", isForbiddenTargeting, forbiddenTargetType, onPlayTarget, onForbiddenDeselect, onUseForbidden, imprisoningTowerIds, onNewGame, debugWizards, debugShowTowers, debugShowWizards, debugShowWizardNames, debugShowTowerNames, debugShowTileNames, debugShowTowerPaths, debugShowDiceOverlay, diceContext, diceReadOnly, diceForcedRoll, actionVisual, turnPrompt, idleReminder, onDiceRollStart, onDiceRollComplete, debugShowSlotMachine, tileStepY, towerStackStep, wizardOffsetY, towerJumpPaths, hiddenShadowTileIndexes, lingeringCapturedWizardIds, lingeringSafeWizards, expandedStackIndex, onSetExpandedStackIndex, statusBarContent, turnStartContent }) {
   const positions = useMemo(() => ringPositions(game.board.length, {
     tileStepY,
     towerLevelHeight: towerStackStep
@@ -89,21 +88,27 @@ export function Board({ game, selectedType, selectableIds, highlightedTileIds, h
     setBoardShiftY(Math.max(baseShift, finalShift));
   }, [expandedStack.length, expandedStackIndex, positions]);
 
-  const reverseMovementActive = Boolean(game.reverseMovement?.playerId);
-
   return (
     <section className="boardWrap" ref={boardRef} style={{ "--board-shift-y": `${boardShiftY}px` }} onClick={() => { onSetExpandedStackIndex(null); onForbiddenDeselect?.(); }}>
       {statusBarContent}
       {turnStartContent}
       <div
-        className={reverseMovementActive ? "isoBoard reverseMovementActive" : "isoBoard"}
+        className="isoBoard"
         style={{}}
       >
         {debugWizards && debugShowTowerPaths && towerJumpPaths.length > 0 && <TowerJumpPathOverlay paths={towerJumpPaths} />}
         {debugWizards && expandedStackIndex != null && expandedStack.length > 0 && <TowerArcOverlay pos={positions[expandedStackIndex]} stackLength={expandedStack.length} />}
         {debugShowDiceOverlay && <DiceOverlay context={diceContext} readOnly={diceReadOnly} forcedRoll={diceForcedRoll} onRollStart={onDiceRollStart} onRollComplete={onDiceRollComplete} />}
         {!debugShowDiceOverlay && actionVisual && (
-          <RemoteActionVisual action={actionVisual} origin={remoteActionOrigin(game, localPlayerId, actionVisual.playerId)} />
+          <RemoteActionVisual action={actionVisual} />
+        )}
+        {turnPrompt && (
+          <TurnMapPrompt prompt={turnPrompt} />
+        )}
+        {idleReminder && (
+          <div className="idleTurnReminder" role="status" aria-live="polite">
+            {idleReminder}
+          </div>
         )}
         {game.board.map((tile, index) => (
           <Tile
@@ -116,8 +121,6 @@ export function Board({ game, selectedType, selectableIds, highlightedTileIds, h
             selectedType={selectedType}
             selectableIds={selectableIds}
             highlightedTileIds={highlightedTileIds}
-            highlightedTowerIds={highlightedTowerIds}
-            highlightedTileTone={highlightedTileTone}
             isForbiddenTargeting={isForbiddenTargeting}
             onPlayTarget={onPlayTarget}
             onForbiddenDeselect={onForbiddenDeselect}
@@ -148,8 +151,6 @@ export function Board({ game, selectedType, selectableIds, highlightedTileIds, h
             selectedType={selectedType}
             selectableIds={selectableIds}
             highlightedTileIds={highlightedTileIds}
-            highlightedTowerIds={highlightedTowerIds}
-            highlightedTileTone={highlightedTileTone}
             isForbiddenTargeting={isForbiddenTargeting}
             onPlayTarget={onPlayTarget}
             onForbiddenDeselect={onForbiddenDeselect}
@@ -190,66 +191,26 @@ export function Board({ game, selectedType, selectableIds, highlightedTileIds, h
 }
 
 function winnerResultSprite(winnerInfo, localPlayerId = "p1") {
-  if (!winnerInfo || winnerInfo.id === "draw") return publicPath("assets/sprites/items/lose.png");
+  if (!winnerInfo || winnerInfo.id === "draw") return "/assets/sprites/items/lose.png";
   return isWinningResult(winnerInfo, localPlayerId)
-    ? publicPath("assets/sprites/items/win.png")
-    : publicPath("assets/sprites/items/lose.png");
+    ? "/assets/sprites/items/win.png"
+    : "/assets/sprites/items/lose.png";
 }
 
 function isWinningResult(winnerInfo, localPlayerId = "p1") {
   return winnerInfo?.id === localPlayerId || winnerInfo?.id === "debug-win";
 }
 
-function remoteActionOrigin(game, localPlayerId, playerId) {
-  const opponents = orderedOpponentsForLocal(game, localPlayerId);
-  const slotIndex = Math.max(0, opponents.findIndex((player) => player.id === playerId));
-  if (opponents.length <= 1) {
-    return { "--remote-origin-x": "0px", "--remote-origin-y": "clamp(-248px, -32vh, -156px)" };
-  }
-  return {
-    "--remote-origin-x": slotIndex === 0 ? "-112px" : "112px",
-    "--remote-origin-y": "clamp(-248px, -32vh, -156px)"
-  };
-}
-
-function orderedOpponentsForLocal(game, localPlayerId) {
-  const turnOrder = game?.turnOrder ?? [];
-  const localIndex = turnOrder.indexOf(localPlayerId);
-  const rankAfterLocal = (playerId) => {
-    const index = turnOrder.indexOf(playerId);
-    if (index < 0) return 99;
-    if (localIndex < 0) return index;
-    return (index - localIndex + turnOrder.length) % turnOrder.length;
-  };
-  return (game?.players ?? [])
-    .filter((player) => player.id !== localPlayerId)
-    .sort((a, b) => rankAfterLocal(a.id) - rankAfterLocal(b.id));
-}
-
-function RemoteActionVisual({ action, origin }) {
+function RemoteActionVisual({ action }) {
   return (
     <div
-      className={action.kind === "spell-exchange" ? "remoteActionVisual remoteActionVisual-text" : "remoteActionVisual"}
-      style={{ ...origin, "--remote-player-color": action.playerColor ?? "#f1d77a" }}
+      className="remoteActionVisual"
       aria-live="polite"
     >
-      {action.kind === "forbidden" && <RemoteForbiddenVisual action={action} />}
-      {action.kind === "spell" && <RemoteSpellVisual action={action} />}
-      {action.kind === "spell-exchange" && <RemoteSpellExchangeVisual action={action} />}
+      {action.kind === "forbidden"
+        ? <RemoteForbiddenVisual action={action} />
+        : <RemoteSpellVisual action={action} />}
     </div>
-  );
-}
-
-function RemoteSpellExchangeVisual({ action }) {
-  return (
-    <span className="remoteSpellExchangeText">
-      <img
-        src={publicPath(`assets/sprites/characters/wizard-face/idle_${action.wizardColor ?? "blue"}.png`)}
-        alt=""
-        aria-hidden="true"
-      />
-      <span>đổi sách phép</span>
-    </span>
   );
 }
 
@@ -258,7 +219,7 @@ function RemoteSpellVisual({ action }) {
   const selected = action.pageType;
   const bookDir = action.wizardColor ? `book-open_${action.wizardColor === "orange" ? "orange1" : action.wizardColor}` : "book-open";
   return (
-    <span className="remoteSpellBook" style={{ "--remote-book": publicCssUrl(`assets/sprites/items/${bookDir}/frame-8.png`) }}>
+    <span className="remoteSpellBook" style={{ "--remote-book": `url('/assets/sprites/items/${bookDir}/frame-8.png')` }}>
       <span className="remoteSpellPages">
         {["tower", "wizard"].map((type, index) => {
           const page = pages.find((item) => item.type === type);
@@ -273,7 +234,7 @@ function RemoteSpellVisual({ action }) {
             <span key={type} className={pageClass}>
               {page ? (
                 <>
-                  <img src={publicPath(`assets/sprites/items/${type === "tower" ? "tower-icon" : "wizard-icon"}.png`)} alt="" />
+                  <img src={`/assets/sprites/items/${type === "tower" ? "tower-icon" : "wizard-icon"}.png`} alt="" />
                   {page.diceRolls ? (
                     <b className="remoteDicePageValue"><span>{page.diceRolls}</span><i>⚂</i></b>
                   ) : (
@@ -281,7 +242,7 @@ function RemoteSpellVisual({ action }) {
                   )}
                 </>
               ) : (
-                <img className="remoteBlankPageSprite" src={publicPath("assets/sprites/items/blank-page.png")} alt="" />
+                <img className="remoteBlankPageSprite" src="/assets/sprites/items/blank-page.png" alt="" />
               )}
             </span>
           );
@@ -298,7 +259,7 @@ function RemoteForbiddenVisual({ action }) {
     <span className="remoteForbiddenCard">
       <span className="remoteForbiddenCost">
         <span>{cost}x</span>
-        <img src={publicPath(`assets/sprites/items/potion-${action.wizardColor ?? "blue"}.png`)} alt="" />
+        <img src={`/assets/sprites/items/potion-${action.wizardColor ?? "blue"}.png`} alt="" />
       </span>
       <span className="remoteForbiddenEffect">
         {renderRemoteForbiddenEffect(effect)}
@@ -315,7 +276,7 @@ function renderRemoteForbiddenEffect(text) {
   ));
 }
 
-export function TurnMapPrompt({ prompt, className = "", style = null }) {
+function TurnMapPrompt({ prompt }) {
   const currentFace = {
     key: prompt.key,
     isLocalTurn: prompt.isLocalTurn,
@@ -340,8 +301,8 @@ export function TurnMapPrompt({ prompt, className = "", style = null }) {
 
   return (
     <div
-      className={["turnMapPrompt", "turnFlipButton", turnFlipState.side === "front" ? "showFront" : "showBack", className].filter(Boolean).join(" ")}
-      style={{ ...style, "--turn-color": currentFace.color }}
+      className={`turnMapPrompt turnFlipButton ${turnFlipState.side === "front" ? "showFront" : "showBack"}`}
+      style={{ "--turn-color": currentFace.color }}
       aria-live="polite"
     >
       <span className="turnFlipInner">
@@ -360,7 +321,7 @@ function TurnOrderFace({ face, side }) {
       ) : (
         <>
           Lượt của
-          <img className="turnOrderWizardIcon" src={publicPath(`assets/sprites/characters/wizard-face/idle_${face.wizardColor ?? "blue"}.png`)} alt="" />
+          <img className="turnOrderWizardIcon" src={`/assets/sprites/characters/wizard-face/idle_${face.wizardColor ?? "blue"}.png`} alt="" />
         </>
       )}
     </span>
@@ -515,7 +476,7 @@ function TowerJumpPathOverlay({ paths }) {
   );
 }
 
-function Tile({ game, tile, index, pos, layer, selectedType, selectableIds, highlightedTileIds, highlightedTowerIds, highlightedTileTone = "default", isForbiddenTargeting, forbiddenTargetType, onPlayTarget, onForbiddenDeselect, debugWizards, debugShowTowers, debugShowWizards, debugShowTowerNames, debugShowWizardNames, debugShowTileNames, towerStackStep, wizardOffsetY, hiddenShadowTileIndexes, lingeringCapturedWizardIds, lingeringSafeWizards, imprisoningTowerIds, expandedStackIndex, onSetExpandedStackIndex }) {
+function Tile({ game, tile, index, pos, layer, selectedType, selectableIds, highlightedTileIds, isForbiddenTargeting, forbiddenTargetType, onPlayTarget, onForbiddenDeselect, debugWizards, debugShowTowers, debugShowWizards, debugShowTowerNames, debugShowWizardNames, debugShowTileNames, towerStackStep, wizardOffsetY, hiddenShadowTileIndexes, lingeringCapturedWizardIds, lingeringSafeWizards, imprisoningTowerIds, expandedStackIndex, onSetExpandedStackIndex }) {
   const occupants = tileOccupants(game, index);
   const lingeringCapturedOccupants = game.wizards.filter((wizard) => (
     lingeringCapturedWizardIds?.has(wizard.id) &&
@@ -535,11 +496,7 @@ function Tile({ game, tile, index, pos, layer, selectedType, selectableIds, high
   const selectableTile = selectedType === "tile" && selectableIds.has(selectableTileId);
   const highlightedTile = highlightedTileIds?.has(selectableTileId);
   const showDirectionArrow = index % 2 === 1;
-  const reverseMovementActive = Boolean(game.reverseMovement?.playerId);
-  const directionTargetIndex = reverseMovementActive
-    ? (index - 1 + game.board.length) % game.board.length
-    : (index + 1) % game.board.length;
-  const nextPos = ringPositions(game.board.length)[directionTargetIndex];
+  const nextPos = ringPositions(game.board.length)[(index + 1) % game.board.length];
   const directionAngle = nextPos ? Math.atan2(nextPos.y - pos.y, nextPos.x - pos.x) * 180 / Math.PI : 0;
   const selectableTower = selectedType === "tower" ? [...stack].reverse().find((tower) => selectableIds.has(tower.id)) : null;
   const isExpanded = selectedType === "tower" && expandedStackIndex === index && stack.length > 0;
@@ -570,7 +527,6 @@ function Tile({ game, tile, index, pos, layer, selectedType, selectableIds, high
             "hexCell",
             selectableTower || selectableTile ? "selectable" : "",
             highlightedTile ? "selectedTile" : "",
-            highlightedTile && highlightedTileTone === "gold" ? "selectedTileGold" : "",
             debugWizards ? "debugGrid" : ""
           ].filter(Boolean).join(" ")}
           onClick={(event) => {
@@ -599,7 +555,7 @@ function Tile({ game, tile, index, pos, layer, selectedType, selectableIds, high
           <img className="tileSprite" src={tileSpritePath(tile)} alt="" aria-hidden="true" />
           {showDirectionArrow && (
             <span
-              className={reverseMovementActive ? "tileDirectionArrow reverse" : "tileDirectionArrow"}
+              className="tileDirectionArrow"
               style={{ "--direction-angle": `${directionAngle}deg` }}
               aria-hidden="true"
             >
@@ -627,7 +583,7 @@ function Tile({ game, tile, index, pos, layer, selectedType, selectableIds, high
       }}
     >
       {highlightedTile && (
-        <svg className={highlightedTileTone === "gold" ? "hexSelectionOverlay hexSelectionOverlayGold" : "hexSelectionOverlay"} viewBox="0 0 100 72" aria-hidden="true">
+        <svg className="hexSelectionOverlay" viewBox="0 0 100 72" aria-hidden="true">
           <polygon points="50,4 97,36 50,68 3,36" />
         </svg>
       )}
@@ -642,7 +598,6 @@ function Tile({ game, tile, index, pos, layer, selectedType, selectableIds, high
       {debugShowTowers && stack.length > 0 && <span className={`${isExpanded ? "towerStack expanded" : "towerStack"} ${selectedType !== "tower" && !selectableTile ? "inactiveHitbox" : ""}`}>
         {stack.map((tower, level) => {
           const isSelectable = selectableIds.has(tower.id);
-          const isHighlightedTopSwapTower = highlightedTowerIds?.has(tower.id);
           const arcOffset = towerArcOffset(pos, level, stack.length);
           const arcTilt = towerArcTilt(pos, level, stack.length);
           const showTowerRaven = tower.kind !== "keep" && (tower.hasRaven || tower.tempRaven);
@@ -652,7 +607,7 @@ function Tile({ game, tile, index, pos, layer, selectedType, selectableIds, high
               key={tower.id}
               data-flip-id={tower.id}
               data-bounce=""
-              className={`${tower.kind === "keep" ? "keepToken" : showTowerRaven ? "towerToken ravenTower" : "towerToken"} ${isSelectable ? "selectable" : ""} ${level === 0 ? "baseTower" : ""} ${imprisoningTowerIds?.has(tower.id) ? "imprisoning" : ""} ${isHighlightedTopSwapTower ? "selectedTopSwapTower" : ""}`}
+              className={`${tower.kind === "keep" ? "keepToken" : showTowerRaven ? "towerToken ravenTower" : "towerToken"} ${isSelectable ? "selectable" : ""} ${level === 0 ? "baseTower" : ""} ${imprisoningTowerIds?.has(tower.id) ? "imprisoning" : ""}`}
               style={{
                 "--level": level,
                 "--arc-x": `${arcOffset.x}px`,
